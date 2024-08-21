@@ -90,6 +90,9 @@ class Player(pygame.sprite.Sprite):
         self.CheckControls()
         self.Move()
         self.RotateToMouse()
+    
+    def GetHitbox(self):
+        return self.hitboxRect
 
 class Enemy(pygame.sprite.Sprite):
     """ This class represents the ball
@@ -134,7 +137,7 @@ class Enemy(pygame.sprite.Sprite):
         xDist = Px - x
         yDist = Py - y
         self.angle = math.degrees(math.atan2(yDist, xDist))
-        print("ANGLE:", self.angle)
+        #print("ANGLE:", self.angle)
         self.velX = velocity/2 * math.cos(math.radians(self.angle))
         self.velY = velocity/2 * math.sin(math.radians(self.angle))
         #print("distX:", xDist, "| distY:", yDist, "| distY/distY:", xDist/yDist)
@@ -149,19 +152,36 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.center = self.hitboxRect.center
         
     def Update(self):
-        """ Update the position of the player """
+        """ Update the position of the enemy """
 
         #print(f"POS: ({self.pos[0]}. {self.pos[1]})")
         self.Move()
         self.RotateToPlayer()
+        #self.CheckCollision()
 
+    def CheckCollision(self):
+        localHitboxes = spriteHitboxes
+        localHitboxes.remove(self.hitboxRect)
+        if self.hitboxRect.collidelist(localHitboxes):
+            self.velX = 0
+            self.velY = 0
+    
+    def GetHitbox(self):
+        print("and i watch as things play out like")
+        return self.hitboxRect
 
-allSprites = pygame.sprite.Group()
+allSprites = pygame.sprite.Group() # Must have a hitbox rect called 'hitboxRect'
 player = Player()
 enemy = Enemy(300, 100)
 enemy1 = Enemy(200, 200)
 enemy2 = Enemy(400, 200)
 allSprites.add(player)
+allSprites.add(enemy)
+allSprites.add(enemy1)
+allSprites.add(enemy2)
+spriteHitboxes = []
+for sprite in allSprites:
+    spriteHitboxes.append(sprite.GetHitbox)
 
 background = pygame.Surface(screen.get_size())
 
@@ -173,7 +193,6 @@ while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-
     
     player.Update()
     enemy.Update()
