@@ -1,13 +1,17 @@
 import pygame
 import math
+import random
 
 pygame.init()
 
 pygame.display.set_caption("Zombie Test")
 
+screenW = 800
+screenH = 600
+
 white = (255, 255, 255)
 black = (0, 0, 0)
-screen = pygame.display.set_mode([800, 600])
+screen = pygame.display.set_mode([screenW, screenH])
 velocity = 2
 clock = pygame.time.Clock()
 
@@ -45,6 +49,8 @@ class Player(pygame.sprite.Sprite):
         # Get attributes for the height/width of the screen
         self.screenheight = pygame.display.get_surface().get_height()
         self.screenwidth = pygame.display.get_surface().get_width()     
+
+        self.localHitboxes = []
 
     def CheckControls(self):
         keys = pygame.key.get_pressed()
@@ -93,22 +99,30 @@ class Player(pygame.sprite.Sprite):
     
     def GetHitbox(self):
         return self.hitboxRect
+    
+    def GetVelocity(self):
+        return [self.velX, self.velY]
+    
+    def CreateLocalHitboxes(self, rectList):
+        print("local hit boxes:", self.localHitboxes)
+        for rect in rectList:
+            if rect != self.hitboxRect:
+                self.localHitboxes.append(rect)
+    
+    def Test(self):
+        print("test") 
 
-class Enemy(pygame.sprite.Sprite):
+class Enemy(Player):
     """ This class represents the ball
         It derives from the "Sprite" class in Pygame """
     
     # Vector position
     pos = 0
  
-    # Velocity
-    velX = velocity/2
-    velY = velocity/2
  
     width = 20
     height = 20
 
- 
     # Constructor. 
     def __init__(self, x, y):
         # Call the parent class (Sprite) constructor
@@ -129,6 +143,12 @@ class Enemy(pygame.sprite.Sprite):
         self.screenheight = pygame.display.get_surface().get_height()
         self.screenwidth = pygame.display.get_surface().get_width()
 
+        self.localHitboxes = []
+
+        # Velocity
+        self.velX = velocity/2
+        self.velY = velocity/2
+
     def RotateToPlayer(self):
         x = self.hitboxRect.centerx
         y = self.hitboxRect.centery
@@ -146,10 +166,6 @@ class Enemy(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.baseEnemyImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
 
-    def Move(self):
-        self.pos +=  pygame.math.Vector2(self.velX, self.velY)
-        self.hitboxRect.center = self.pos
-        self.rect.center = self.hitboxRect.center
         
     def Update(self):
         """ Update the position of the enemy """
@@ -157,31 +173,44 @@ class Enemy(pygame.sprite.Sprite):
         #print(f"POS: ({self.pos[0]}. {self.pos[1]})")
         self.Move()
         self.RotateToPlayer()
-        #self.CheckCollision()
+        self.CheckCollision()
 
     def CheckCollision(self):
-        localHitboxes = spriteHitboxes
-        localHitboxes.remove(self.hitboxRect)
-        if self.hitboxRect.collidelist(localHitboxes):
-            self.velX = 0
-            self.velY = 0
-    
-    def GetHitbox(self):
-        print("and i watch as things play out like")
-        return self.hitboxRect
+        arrayPos = self.hitboxRect.collidelist(self.localHitboxes)
+        if arrayPos != -1:
+            #print(self.hitboxRect.collidelist(self.localHitboxes))
+            #print("colliding!")
+            spriteColWith = 0 # Will store the sprite collided with
+            for item in hitboxRef:
+                if item[0] == self.localHitboxes[arrayPos]:
+                    spriteColWith = item[1]
+            spritePos = spriteColWith.pos
+            xDiff = self.pos[0] - spritePos[0]
+            yDiff = self.pos[1] - spritePos[1] 
+            self.velX = xDiff * spriteColWith.GetVelocity()[0]
+            self.velY = yDiff * spriteColWith.GetVelocity()[1]
 
 allSprites = pygame.sprite.Group() # Must have a hitbox rect called 'hitboxRect'
 player = Player()
-enemy = Enemy(300, 100)
-enemy1 = Enemy(200, 200)
-enemy2 = Enemy(400, 200)
+enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
+enemy1 = Enemy(random.randint(1, screenW), random.randint(1, screenH))
+enemy2 = Enemy(random.randint(1, screenW), random.randint(1, screenH))
 allSprites.add(player)
 allSprites.add(enemy)
 allSprites.add(enemy1)
 allSprites.add(enemy2)
 spriteHitboxes = []
+hitboxRef = [] # 2D array which links rects to sprite. [array, sprite]
+
 for sprite in allSprites:
-    spriteHitboxes.append(sprite.GetHitbox)
+    spriteHitboxes.append(sprite.GetHitbox())
+    hitboxRef.append([sprite.GetHitbox(), sprite])
+
+for sprite in allSprites:
+    sprite.CreateLocalHitboxes(spriteHitboxes)
+
+for i in spriteHitboxes:
+    print("fnenfe:", i)
 
 background = pygame.Surface(screen.get_size())
 
@@ -200,6 +229,9 @@ while run:
     enemy2.Update()
     pygame.draw.rect(screen, "red", player.hitboxRect, width=2)
     #pygame.draw.rect(screen, "yellow", player.rect, width=2)
+    pygame.draw.rect(screen, "green", enemy.hitboxRect, width = 2)
+    pygame.draw.rect(screen, "green", enemy1.hitboxRect, width = 2)
+    pygame.draw.rect(screen, "green", enemy2.hitboxRect, width = 2)
     #allSprites.draw(screen)
     screen.blit(player.image, player.rect)
     screen.blit(enemy.image, enemy.rect)
