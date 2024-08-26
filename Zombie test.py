@@ -145,9 +145,10 @@ class Enemy(Player):
 
         self.localHitboxes = []
 
+        self.speed = 1
         # Velocity
-        self.velX = velocity/2
-        self.velY = velocity/2
+        self.velX = self.speed
+        self.velY = self.speed
 
     def RotateToPlayer(self):
         x = self.hitboxRect.centerx
@@ -158,8 +159,8 @@ class Enemy(Player):
         yDist = Py - y
         self.angle = math.degrees(math.atan2(yDist, xDist))
         #print("ANGLE:", self.angle)
-        self.velX = velocity/2 * math.cos(math.radians(self.angle))
-        self.velY = velocity/2 * math.sin(math.radians(self.angle))
+        self.velX = self.speed * math.cos(math.radians(self.angle))
+        self.velY = self.speed * math.sin(math.radians(self.angle))
         #print("distX:", xDist, "| distY:", yDist, "| distY/distY:", xDist/yDist)
         #print("VELX:", self.velX, "| VELY:", self.velY)
         pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.velX * 100, self.pos.y + self.velY * 100))
@@ -187,8 +188,8 @@ class Enemy(Player):
             spritePos = spriteColWith.pos
             xDiff = self.pos[0] - spritePos[0]
             yDiff = self.pos[1] - spritePos[1] 
-            self.velX = xDiff * spriteColWith.GetVelocity()[0]
-            self.velY = yDiff * spriteColWith.GetVelocity()[1]
+            self.velX = xDiff / math.sqrt(self.velX**2 + self.velY**2) / math.sqrt(self.speed)
+            self.velY = yDiff / math.sqrt(self.velX**2 + self.velY**2) / math.sqrt(self.speed)
 
 allSprites = pygame.sprite.Group() # Must have a hitbox rect called 'hitboxRect'
 player = Player()
