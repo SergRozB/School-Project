@@ -12,7 +12,6 @@ screenH = 600
 white = (255, 255, 255)
 black = (0, 0, 0)
 screen = pygame.display.set_mode([screenW, screenH])
-velocity = 2
 clock = pygame.time.Clock()
 
 class Player(pygame.sprite.Sprite):
@@ -36,6 +35,9 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
 
         self.pos = pygame.math.Vector2(100, 100)
+        self.prevPos = self.pos
+        self.direction = pygame.math.Vector2(0, 0)
+        self.speed = 2
  
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\TestSquare.png").convert_alpha(), 0, 1)
@@ -50,28 +52,27 @@ class Player(pygame.sprite.Sprite):
         self.screenheight = pygame.display.get_surface().get_height()
         self.screenwidth = pygame.display.get_surface().get_width()     
 
-        self.localHitboxes = []
-
     def CheckControls(self):
         keys = pygame.key.get_pressed()
-        self.velX = 0
-        self.velY = 0
+        self.direction.x = 0
+        self.direction.y = 0
     
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.velX -= velocity
+            self.direction.x = -1*self.speed
 
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.velX += velocity
+            self.direction.x = 1*self.speed
 
         if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.velY -= velocity
+            self.direction.y = -1*self.speed
  
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.velY += velocity
+            self.direction.y = 1*self.speed
 
-        if self.velX != 0 and self.velY != 0:
-            self.velX /= math.sqrt(2)
-            self.velY /= math.sqrt(2)
+        if self.direction.x != 0 and self.direction.y != 0:
+            self.direction.x /= math.sqrt(self.speed)
+            self.direction.y /= math.sqrt(self.speed)
+        
 
     def RotateToMouse(self):
         x = self.hitboxRect.centerx
@@ -85,8 +86,14 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
 
     def Move(self):
-        self.pos +=  pygame.math.Vector2(self.velX, self.velY)
-        self.hitboxRect.center = self.pos
+        self.pos.x += self.direction.x * self.speed
+        self.hitboxRect.x = round(self.pos.x)
+        self.CheckCollision('horizontal')
+
+        self.pos.y += self.direction.y * self.speed
+        self.hitboxRect.y = round(self.pos.y)
+        self.CheckCollision('vertical')
+
         self.rect.center = self.hitboxRect.center
         
     def Update(self):
@@ -96,30 +103,48 @@ class Player(pygame.sprite.Sprite):
         self.CheckControls()
         self.Move()
         self.RotateToMouse()
-    
-    def GetHitbox(self):
-        return self.hitboxRect
+        self.oldRect = self.hitboxRect.copy()
     
     def GetVelocity(self):
-        return [self.velX, self.velY]
+        return [self.direction.x, self.direction.y]
     
-    def CreateLocalHitboxes(self, rectList):
-        print("local hit boxes:", self.localHitboxes)
-        for rect in rectList:
-            if rect != self.hitboxRect:
-                self.localHitboxes.append(rect)
+    def CreateLocalSprites(self, sprites):
+        self.localSprites = pygame.sprite.Group()
+        for sprite in sprites:
+            if sprite.hitboxRect != self.hitboxRect:
+                self.localSprites.add(sprite)
     
+    def CheckCollision(self, direction):
+        collisionSprites = pygame.sprite.spritecollide(self, self.localSprites, False)
+        for sprite in collisionSprites:
+            if direction == 'horizontal':
+                # If collision on the right
+                if self.hitboxRect.right >= sprite.hitboxRect.left and self.oldRect.right <= sprite.oldRect.left:
+                    self.hitboxRect.right = sprite.hitboxRect.left
+                    self.pos.x = self.hitboxRect.x
+                
+                # If collision on the left
+                if self.hitboxRect.left <= sprite.hitboxRect.right and self.oldRect.left >= sprite.oldRect.right:
+                    self.hitboxRect.left = sprite.hitboxRect.right
+                    self.pos.x = self.hitboxRect.x
+
+            if direction == 'vertical':
+                # If collision on the top
+                if self.hitboxRect.bottom >= sprite.hitboxRect.top and self.oldRect.bottom <= sprite.oldRect.top:
+                    self.hitboxRect.bottom = sprite.hitboxRect.top
+                    self.pos.y = self.hitboxRect.y
+                
+                # If collision on the bottom
+                if self.hitboxRect.top <= sprite.hitboxRect.bottom and self.oldRect.top >= sprite.oldRect.bottom:
+                    self.hitboxRect.top = sprite.hitboxRect.bottom
+                    self.pos.y = self.hitboxRect.y
+
     def Test(self):
         print("test") 
 
 class Enemy(Player):
     """ This class represents the ball
         It derives from the "Sprite" class in Pygame """
-    
-    # Vector position
-    pos = 0
- 
- 
     width = 20
     height = 20
 
@@ -129,7 +154,7 @@ class Enemy(Player):
         super().__init__()
 
         self.pos = pygame.math.Vector2(x, y)
- 
+        self.direction = pygame.math.Vector2(0, 0)
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\goomba.png").convert_alpha(), 0, 1)
         self.baseEnemyImage = self.image
@@ -138,17 +163,14 @@ class Enemy(Player):
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.baseEnemyImage.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
+        self.oldRect = self.hitboxRect.copy()
  
         # Get attributes for the height/width of the screen
         self.screenheight = pygame.display.get_surface().get_height()
         self.screenwidth = pygame.display.get_surface().get_width()
 
-        self.localHitboxes = []
-
         self.speed = 1
         # Velocity
-        self.velX = self.speed
-        self.velY = self.speed
 
     def RotateToPlayer(self):
         x = self.hitboxRect.centerx
@@ -159,8 +181,9 @@ class Enemy(Player):
         yDist = Py - y
         self.angle = math.degrees(math.atan2(yDist, xDist))
         #print("ANGLE:", self.angle)
-        self.velX = self.speed * math.cos(math.radians(self.angle))
-        self.velY = self.speed * math.sin(math.radians(self.angle))
+        velX = self.speed * math.cos(math.radians(self.angle))
+        velY = self.speed * math.sin(math.radians(self.angle))
+        self.direction = pygame.math.Vector2(velX, velY)
         #print("distX:", xDist, "| distY:", yDist, "| distY/distY:", xDist/yDist)
         #print("VELX:", self.velX, "| VELY:", self.velY)
         pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.velX * 100, self.pos.y + self.velY * 100))
@@ -174,22 +197,7 @@ class Enemy(Player):
         #print(f"POS: ({self.pos[0]}. {self.pos[1]})")
         self.Move()
         self.RotateToPlayer()
-        self.CheckCollision()
-
-    def CheckCollision(self):
-        arrayPos = self.hitboxRect.collidelist(self.localHitboxes)
-        if arrayPos != -1:
-            #print(self.hitboxRect.collidelist(self.localHitboxes))
-            #print("colliding!")
-            spriteColWith = 0 # Will store the sprite collided with
-            for item in hitboxRef:
-                if item[0] == self.localHitboxes[arrayPos]:
-                    spriteColWith = item[1]
-            spritePos = spriteColWith.pos
-            xDiff = self.pos[0] - spritePos[0]
-            yDiff = self.pos[1] - spritePos[1] 
-            self.velX = xDiff / math.sqrt(self.velX**2 + self.velY**2) / math.sqrt(self.speed)
-            self.velY = yDiff / math.sqrt(self.velX**2 + self.velY**2) / math.sqrt(self.speed)
+        self.oldRect = self.hitboxRect.copy()
 
 allSprites = pygame.sprite.Group() # Must have a hitbox rect called 'hitboxRect'
 player = Player()
@@ -200,18 +208,9 @@ allSprites.add(player)
 allSprites.add(enemy)
 allSprites.add(enemy1)
 allSprites.add(enemy2)
-spriteHitboxes = []
-hitboxRef = [] # 2D array which links rects to sprite. [array, sprite]
 
 for sprite in allSprites:
-    spriteHitboxes.append(sprite.GetHitbox())
-    hitboxRef.append([sprite.GetHitbox(), sprite])
-
-for sprite in allSprites:
-    sprite.CreateLocalHitboxes(spriteHitboxes)
-
-for i in spriteHitboxes:
-    print("fnenfe:", i)
+    sprite.CreateLocalSprites(allSprites)
 
 background = pygame.Surface(screen.get_size())
 
