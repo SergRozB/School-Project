@@ -15,8 +15,6 @@ screen = pygame.display.set_mode([screenW, screenH])
 clock = pygame.time.Clock()
 
 class Player(pygame.sprite.Sprite):
-    """ This class represents the ball
-        It derives from the "Sprite" class in Pygame """
     
     # Vector position
     pos = 0
@@ -42,7 +40,6 @@ class Player(pygame.sprite.Sprite):
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\TestSquare.png").convert_alpha(), 0, 1)
         self.basePlayerImage = self.image
-        #self.image = pygame.Surface([self.width, self.height])
 
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.basePlayerImage.get_rect(center = self.pos)
@@ -81,7 +78,6 @@ class Player(pygame.sprite.Sprite):
         xDist = Mx - x
         yDist = My - y
         self.angle = math.degrees(math.atan2(yDist, xDist))
-        #print("angle:", self.angle)
         self.image = pygame.transform.rotate(self.basePlayerImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
 
@@ -99,7 +95,6 @@ class Player(pygame.sprite.Sprite):
     def Update(self):
         """ Update the position of the player """
 
-        #print(f"POS: ({self.pos[0]}. {self.pos[1]})")
         self.CheckControls()
         self.Move()
         self.RotateToMouse()
@@ -143,22 +138,19 @@ class Player(pygame.sprite.Sprite):
         print("test") 
 
 class Enemy(Player):
-    """ This class represents the ball
-        It derives from the "Sprite" class in Pygame """
     width = 20
     height = 20
 
     # Constructor. 
     def __init__(self, x, y):
-        # Call the parent class (Sprite) constructor
+        # Call the parent class (Player) constructor
         super().__init__()
 
         self.pos = pygame.math.Vector2(x, y)
         self.direction = pygame.math.Vector2(0, 0)
         # Create the image of the player
-        self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\goomba.png").convert_alpha(), 0, 1)
+        self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\goomba.png").convert_alpha(), 0, 0.5)
         self.baseEnemyImage = self.image
-        #self.image = pygame.Surface([self.width, self.height])
 
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.baseEnemyImage.get_rect(center = self.pos)
@@ -175,17 +167,13 @@ class Enemy(Player):
     def RotateToPlayer(self):
         x = self.hitboxRect.centerx
         y = self.hitboxRect.centery
-        #print("Playerpos:", player.pos)
         Px, Py = player.pos
         xDist = Px - x
         yDist = Py - y
         self.angle = math.degrees(math.atan2(yDist, xDist))
-        #print("ANGLE:", self.angle)
         velX = self.speed * math.cos(math.radians(self.angle))
         velY = self.speed * math.sin(math.radians(self.angle))
         self.direction = pygame.math.Vector2(velX, velY)
-        #print("distX:", xDist, "| distY:", yDist, "| distY/distY:", xDist/yDist)
-        #print("VELX:", self.velX, "| VELY:", self.velY)
         pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.velX * 100, self.pos.y + self.velY * 100))
         self.image = pygame.transform.rotate(self.baseEnemyImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
@@ -193,21 +181,20 @@ class Enemy(Player):
         
     def Update(self):
         """ Update the position of the enemy """
-
-        #print(f"POS: ({self.pos[0]}. {self.pos[1]})")
         self.Move()
         self.RotateToPlayer()
         self.oldRect = self.hitboxRect.copy()
 
-allSprites = pygame.sprite.Group() # Must have a hitbox rect called 'hitboxRect'
+allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
+liveSprites = pygame.sprite.Group() # Group of all 'living' sprites that need updating
 player = Player()
-enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
-enemy1 = Enemy(random.randint(1, screenW), random.randint(1, screenH))
-enemy2 = Enemy(random.randint(1, screenW), random.randint(1, screenH))
 allSprites.add(player)
-allSprites.add(enemy)
-allSprites.add(enemy1)
-allSprites.add(enemy2)
+liveSprites.add(player)
+
+for _ in range(5):
+    enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
+    allSprites.add(enemy)
+    liveSprites.add(enemy)
 
 for sprite in allSprites:
     sprite.CreateLocalSprites(allSprites)
@@ -223,20 +210,10 @@ while run:
         if event.type == pygame.QUIT:
             run = False
     
-    player.Update()
-    enemy.Update()
-    enemy1.Update()
-    enemy2.Update()
-    pygame.draw.rect(screen, "red", player.hitboxRect, width=2)
-    #pygame.draw.rect(screen, "yellow", player.rect, width=2)
-    pygame.draw.rect(screen, "green", enemy.hitboxRect, width = 2)
-    pygame.draw.rect(screen, "green", enemy1.hitboxRect, width = 2)
-    pygame.draw.rect(screen, "green", enemy2.hitboxRect, width = 2)
-    #allSprites.draw(screen)
-    screen.blit(player.image, player.rect)
-    screen.blit(enemy.image, enemy.rect)
-    screen.blit(enemy1.image, enemy1.rect)
-    screen.blit(enemy2.image, enemy2.rect)
+    for sprite in liveSprites:
+        sprite.Update()
+        pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+        screen.blit(sprite.image, sprite.rect)
     
     pygame.display.update()
     clock.tick(60)
