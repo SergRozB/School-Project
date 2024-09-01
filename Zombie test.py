@@ -138,9 +138,6 @@ class Player(pygame.sprite.Sprite):
         print("test") 
 
 class Enemy(Player):
-    width = 20
-    height = 20
-
     # Constructor. 
     def __init__(self, x, y):
         # Call the parent class (Player) constructor
@@ -149,7 +146,7 @@ class Enemy(Player):
         self.pos = pygame.math.Vector2(x, y)
         self.direction = pygame.math.Vector2(0, 0)
         # Create the image of the player
-        self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\goomba.png").convert_alpha(), 0, 0.5)
+        self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\goomba.png").convert_alpha(), 0, 0.25)
         self.baseEnemyImage = self.image
 
         # Get a rectangle object that shows where our image is
@@ -177,7 +174,6 @@ class Enemy(Player):
         pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.velX * 100, self.pos.y + self.velY * 100))
         self.image = pygame.transform.rotate(self.baseEnemyImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
-
         
     def Update(self):
         """ Update the position of the enemy """
@@ -185,18 +181,41 @@ class Enemy(Player):
         self.RotateToPlayer()
         self.oldRect = self.hitboxRect.copy()
 
+class Obstacle(pygame.sprite.Sprite):
+    # Obstacle sprite, can't move
+    def __init__(self, width, height, x, y):
+        # Call the parent class (Sprite) constructor
+        super().__init__()
+
+        self.pos = pygame.math.Vector2(x, y)
+
+        self.width = width
+        self.height = height
+
+        self.image = pygame.Surface([width, height])
+        self.image.fill(white)
+        self.hitboxRect = self.image.get_rect(center = self.pos)
+        self.rect = self.hitboxRect.copy()
+        self.oldRect = self.rect
+
+
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
 liveSprites = pygame.sprite.Group() # Group of all 'living' sprites that need updating
+obstacles = pygame.sprite.Group() # Group of all immobile sprites, for use in pathfinding
 player = Player()
+obstacle = Obstacle(20, 20, 300, 300)
 allSprites.add(player)
+allSprites.add(obstacle)
 liveSprites.add(player)
+obstacles.add(obstacle)
 
 for _ in range(5):
     enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
     allSprites.add(enemy)
     liveSprites.add(enemy)
+    print(enemy.pos)
 
-for sprite in allSprites:
+for sprite in liveSprites:
     sprite.CreateLocalSprites(allSprites)
 
 background = pygame.Surface(screen.get_size())
@@ -213,6 +232,8 @@ while run:
     for sprite in liveSprites:
         sprite.Update()
         pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+    
+    for sprite in allSprites:
         screen.blit(sprite.image, sprite.rect)
     
     pygame.display.update()
