@@ -150,15 +150,17 @@ class Enemy(Player):
         self.screenheight = pygame.display.get_surface().get_height()
         self.screenwidth = pygame.display.get_surface().get_width()
 
-        self.speed = 1
         # Velocity
+        self.speed = 1
 
-    def RotateToPlayer(self):
+        self.target = player
+
+    def RotateToTarget(self):
         x = self.hitboxRect.centerx
         y = self.hitboxRect.centery
-        Px, Py = player.pos
-        xDist = Px - x
-        yDist = Py - y
+        Tx, Ty = self.target.pos
+        xDist = Tx - x
+        yDist = Ty - y
         self.angle = math.degrees(math.atan2(yDist, xDist))
         velX = self.speed * math.cos(math.radians(self.angle))
         velY = self.speed * math.sin(math.radians(self.angle))
@@ -168,8 +170,10 @@ class Enemy(Player):
         
     def Update(self):
         """ Update the position of the enemy """
+        self.Pathfind()
+        self.FollowPath()
+        self.RotateToTarget()
         self.Move()
-        self.RotateToPlayer()
         self.oldRect = self.hitboxRect.copy()
     
     def GetNeighbours(self, sourcePos, endPos, processedList, cellsToSearch):
@@ -222,12 +226,86 @@ class Enemy(Player):
         return False
 
     def Pathfind(self):
-        pass
+        endCellPos = self.GetRectCellPos(player.hitboxRect)
+        startCellPos = self.GetRectCellPos(self.hitboxRect)
+        hasCompleted = False
+        cellsToSearch = [startCellPos]
+        processedCells = []
+        neighbours = []
+        self.FixEdges()
+        while not hasCompleted:
+            # Get best cell cost
+            bestCellPos = cellsToSearch[0]
+            for cellPos in cellsToSearch:
+                if (self.FindCellInfo(cellPos, 'f') < self.FindCellInfo(bestCellPos, 'f') or (self.FindCellInfo(cellPos, 'f')
+                 == self.FindCellInfo(bestCellPos, 'f') and self.FindCellInfo(cellPos, 'h') < self.FindCellInfo(bestCellPos, 'h'))):
+                    bestCellPos = cellPos
+            
+            processedCells.append(bestCellPos)
+            cellsToSearch.remove(bestCellPos)
+
+            neighbours = self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)
+            print("neighbours:", neighbours)
+            if neighbours == -1:
+                # The below colours the processed cells and cells to search. Doesn't work currently
+                #for cellPos in processedCells:
+                    #if cellPos != startCellPos:
+                        #cell.image.fill(dark_green)
+                #for cell in cellsToSearch:
+                    #if cell != startCell:
+                        #cell.image.fill(light_blue)
+
+                self.CompilePath(startCellPos, endCellPos)
+            if len(cellsToSearch) == 0:
+                hasCompleted == True
+                print("CANT COMPLETE PATH, ALL PROCESSED")
+                return -1
+    
+    def CompilePath(self, startPos, endPos):
+        # Follows the connected cells from start to end 
+        # Creates a list of cells to go to
+        self.path = [self.GetCell(endPos)]
+        cellPos = endPos
+        while cellPos != startPos:
+            if self.FindCellInfo(cellPos, 'g') >= 1000:
+                # If g cost bigger than 1000, must've done an illegal path
+                print("CANT COMPLETE PATH, ILLEGAL MOVE")
+            cellPos = self.GetCell(self.FindCellInfo(cellPos, 'parent')) # Gets cell object of parent cell
+            if cellPos != -1:
+                self.path.append(cellPos)
+            else:
+                # Reverses order of list since we follow it from end to start
+                # in this code, but the enemy needs to follow it from start to end
+                self.path.reverse()
+    
+    def FollowPath(self):
+        # Removes a cell from the path list if collided with
+        self.target = self.path[0]
+        if self.hitboxRect.colliderect(self.path[0].rect):
+            self.path.remove(self.path[0]) 
+            self.target = self.path[0]   
+
+    def GetCell(self, pos):
+        for cell in pathSprites:
+            if pos == cell.pos:
+                return cell
+        return None
     
     def CreateLocalPathMap(self):
-        self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if its next to a wall, if it has an obstacle, if its the target
+        self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
         for sprite in pathSprites:
-            self.localPathMap = [sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]]
+            self.localPathMap.append([sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]])
+    
+    def FixEdges(self):
+        positionList = []
+        for i in self.localPathMap:
+            position = i[0]
+            positionList.append(position)
+            if self.FindCellInfo(position, 'hasObstacle'):
+                horizontalNPos = [[position[0] + 1, position[1]], [position[0], position[1] + 1], [position[0] - 1, position[1]], [position[0], position[1] - 1]]
+                for pos in horizontalNPos:
+                    if pos in positionList:
+                        self.SetCellInfo(pos, 'nextToWall', True)
     
     def FindCellInfo(self, pos, wanted):
         # Finds cell information from local path map 
@@ -245,6 +323,9 @@ class Enemy(Player):
                     return cell[1][4]
                 if wanted == 'isTarget':
                     return cell[1][5]
+                if wanted == 'f':
+                    f = cell[1][0] + cell[1][1]
+                    return f
                 
     def SetCellInfo(self, pos, wanted, change):
         # Changes cell information from local path map 
@@ -262,6 +343,12 @@ class Enemy(Player):
                     cell[1][4] = change
                 if wanted == 'isTarget':
                     cell[1][5] = change
+    
+    def GetRectCellPos(self, rect):
+        # Gets the position of a cell colliding with the given rect
+        for cell in pathSprites:
+            if cell.rect.colliderect(rect):
+                return cell.pos
 
 class Obstacle(pygame.sprite.Sprite):
     # Obstacle sprite, can't move
@@ -295,7 +382,7 @@ class Block(pygame.sprite.Sprite):
         self.g = 0
         self.h = 0
 
-        self.connectedCell = None
+        self.connectedCell = -1
         self.nextToWall = False
         self.hasObstacle = False
         self.isTarget = False
@@ -361,7 +448,7 @@ obstacles.add(obstacle)
 
 CreateObstacleMap()
 
-for _ in range(5):
+for _ in range(1):
     enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
     allSprites.add(enemy)
     liveSprites.add(enemy)
