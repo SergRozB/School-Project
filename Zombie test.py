@@ -173,7 +173,7 @@ class Enemy(Player):
         self.oldRect = self.hitboxRect.copy()
     
     def GetNeighbours(self, sourcePos, endPos, processedList, cellsToSearch):
-        # STILL NEEDS WORK #
+        # GET NEIGHBOURS APPEARS FINISHED #
         # Takes the position of the source cell, and its g cost.
         # Gets the neighbour objects of the said cell and returns them.
         # Also returns a list containing -1 if the target is the neighbour. 
@@ -192,25 +192,25 @@ class Enemy(Player):
             #print("neighbours pos:", neighboursPos)
             #print("block pos", block.pos)
 
-            if self.localPathMap[block.pos][5] and block.pos in neighboursPos: # Checks if the target cell is a neighbour
+            if self.FindCellInfo(block.pos, 'isTarget') and block.pos in neighboursPos: # Checks if the target cell is a neighbour
                 if self.CheckIfDiagonal(block.pos, sourcePos) == False: # Checks if the target cell is at a diagonal distance from the source 
-                    block.connectedCell = sourcePos
+                    self.SetCellInfo(block.pos, 'parent', sourcePos)
                     return -1 # Returns -1, signifying that the target cell was found
             
-            elif block.pos in neighboursPos and not block.hasObstacle and block not in processedList:
-                costToN = sourcePos.g + sourcePos.GetDist(block.pos) # The g cost from the source cell
+            elif block.pos in neighboursPos and not self.FindCellInfo(block.pos, 'hasObstacle') and block.pos not in processedList:
+                costToN = self.FindCellInfo(block.pos, 'g') + GetDist(sourcePos, block.pos) # The g cost from the source cell
                 
-                if self.CheckIfDiagonal(block.pos, sourcePos) and self.localPathMap[block.pos][3] == True:
+                if self.CheckIfDiagonal(block.pos, sourcePos) and self.FindCellInfo(block.pos, 'nextToWall') == True:
                     costToN += 1000
 
-                if block not in cellsToSearch or costToN < block.g:
-                    block.g = costToN
-                    block.connectedCell = sourcePos
+                if block.pos not in cellsToSearch or costToN < self.FindCellInfo(block.pos, 'g'):
+                    self.SetCellInfo(block.pos, 'g', costToN)
+                    self.SetCellInfo(block.pos, 'parent', sourcePos)
 
-                    if block not in cellsToSearch:
-                        block.h = block.GetDist(endPos)
-                        cellsToSearch.append(block) 
-                neighbours.append(block)
+                    if block.pos not in cellsToSearch:
+                        self.SetCellInfo(block.pos, 'h', GetDist(block.pos, endPos))
+                        cellsToSearch.append(block.pos) 
+                neighbours.append(block.pos)
         return neighbours
     
     def CheckIfDiagonal(self, pos, sourcePos):
@@ -225,9 +225,43 @@ class Enemy(Player):
         pass
     
     def CreateLocalPathMap(self):
-        self.localPathMap = {} # Dict structure works like so: cell position --> g cost, h cost, parent cell, if its next to a wall, if it has an obstacle, if its the target
+        self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if its next to a wall, if it has an obstacle, if its the target
         for sprite in pathSprites:
-            self.localPathMap[sprite.pos] = (sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget)
+            self.localPathMap = [sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]]
+    
+    def FindCellInfo(self, pos, wanted):
+        # Finds cell information from local path map 
+        for cell in self.localPathMap:
+            if cell[0] == pos:
+                if wanted == 'g':
+                    return cell[1][0]
+                if wanted == 'h':
+                    return cell[1][1]
+                if wanted == 'parent':
+                    return cell[1][2]
+                if wanted == 'nextToWall':
+                    return cell[1][3]
+                if wanted == 'hasObstacle':
+                    return cell[1][4]
+                if wanted == 'isTarget':
+                    return cell[1][5]
+                
+    def SetCellInfo(self, pos, wanted, change):
+        # Changes cell information from local path map 
+        for cell in self.localPathMap:
+            if cell[0] == pos:
+                if wanted == 'g':
+                    cell[1][0] = change
+                if wanted == 'h':
+                    cell[1][1] = change
+                if wanted == 'parent':
+                    cell[1][2] = change
+                if wanted == 'nextToWall':
+                    cell[1][3] = change
+                if wanted == 'hasObstacle':
+                    cell[1][4] = change
+                if wanted == 'isTarget':
+                    cell[1][5] = change
 
 class Obstacle(pygame.sprite.Sprite):
     # Obstacle sprite, can't move
@@ -281,6 +315,15 @@ class Block(pygame.sprite.Sprite):
     def changeColour(self, colour):
         self.image.fill(colour)
 
+def GetDist(startPos, targetPos):
+        changeY = abs(startPos[1] - targetPos[1]) 
+        changeX = abs(startPos[0] - targetPos[0])
+        if changeX > changeY:
+            dist = 14*(changeY) + 10*(abs(changeX - changeY))
+            return dist
+        dist = 14*(changeX) + 10*(abs(changeY - changeX))
+        return dist
+
 def CreateObstacleMap():
     top = 0
     horizontalCount = math.ceil(screenW/blockWidth)
@@ -322,7 +365,6 @@ for _ in range(5):
     enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
     allSprites.add(enemy)
     liveSprites.add(enemy)
-    print(enemy.pos)
 
 for sprite in liveSprites:
     sprite.CreateLocalSprites(allSprites)
