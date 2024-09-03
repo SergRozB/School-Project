@@ -15,6 +15,10 @@ red = (255, 0, 0)
 screen = pygame.display.set_mode([screenW, screenH])
 clock = pygame.time.Clock()
 
+timeInterval = 1000 # Time interval for when to pathfind in miliseconds
+canPathfind = False
+allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
+
 blockWidth = 20
 
 class Player(pygame.sprite.Sprite):
@@ -155,6 +159,8 @@ class Enemy(Player):
 
         self.target = player
 
+        self.path = []
+
     def RotateToTarget(self):
         x = self.hitboxRect.centerx
         y = self.hitboxRect.centery
@@ -170,8 +176,11 @@ class Enemy(Player):
         
     def Update(self):
         """ Update the position of the enemy """
-        self.Pathfind()
-        self.FollowPath()
+        print("target:", self.target, "|pos:", self.target.pos)
+        if canPathfind:
+            self.Pathfind()
+        if len(self.path) > 0:
+            self.FollowPath()
         self.RotateToTarget()
         self.Move()
         self.oldRect = self.hitboxRect.copy()
@@ -182,19 +191,17 @@ class Enemy(Player):
         # Gets the neighbour objects of the said cell and returns them.
         # Also returns a list containing -1 if the target is the neighbour. 
         # In the above case, the returned list also contains the target cell.
-        northNPos = [sourcePos[0], sourcePos[1] - 1]
-        northWestNPos = [sourcePos[0] + 1, sourcePos[1] - 1]
-        westNPos = [sourcePos[0] + 1, sourcePos[1]]
-        southWesthNPos = [sourcePos[0] + 1, sourcePos[1] + 1]
-        southNPos = [sourcePos[0], sourcePos[1] + 1]
-        southEastNPos = [sourcePos[0] - 1, sourcePos[1] + 1]
-        eastNPos = [sourcePos[0] - 1, sourcePos[1]]
-        northEastNPos = [sourcePos[0] - 1, sourcePos[1] - 1]
+        northNPos = (sourcePos[0], sourcePos[1] - 1)
+        northWestNPos = (sourcePos[0] + 1, sourcePos[1] - 1)
+        westNPos = (sourcePos[0] + 1, sourcePos[1])
+        southWesthNPos = (sourcePos[0] + 1, sourcePos[1] + 1)
+        southNPos = (sourcePos[0], sourcePos[1] + 1)
+        southEastNPos = (sourcePos[0] - 1, sourcePos[1] + 1)
+        eastNPos = (sourcePos[0] - 1, sourcePos[1])
+        northEastNPos = (sourcePos[0] - 1, sourcePos[1] - 1)
         neighboursPos = [northNPos, northWestNPos, westNPos, southWesthNPos, southNPos, southEastNPos, eastNPos, northEastNPos]
         neighbours = []
         for block in pathSprites:
-            #print("neighbours pos:", neighboursPos)
-            #print("block pos", block.pos)
 
             if self.FindCellInfo(block.pos, 'isTarget') and block.pos in neighboursPos: # Checks if the target cell is a neighbour
                 if self.CheckIfDiagonal(block.pos, sourcePos) == False: # Checks if the target cell is at a diagonal distance from the source 
@@ -219,7 +226,7 @@ class Enemy(Player):
     
     def CheckIfDiagonal(self, pos, sourcePos):
         # Checks if a block is diagonal to the player
-        diagonalPos = [[pos[0] + 1, pos[1] + 1], [pos[0] - 1, pos[1] + 1], [pos[0] - 1, pos[1] - 1], [pos[0] + 1, pos[1] - 1]]
+        diagonalPos = [(pos[0] + 1, pos[1] + 1), (pos[0] - 1, pos[1] + 1), (pos[0] - 1, pos[1] - 1), (pos[0] + 1, pos[1] - 1)]
         for pos in diagonalPos:
             if pos == sourcePos:
                 return True
@@ -228,11 +235,11 @@ class Enemy(Player):
     def Pathfind(self):
         endCellPos = self.GetRectCellPos(player.hitboxRect)
         startCellPos = self.GetRectCellPos(self.hitboxRect)
+        self.SetCellInfo(endCellPos, 'isTarget', True)
         hasCompleted = False
         cellsToSearch = [startCellPos]
         processedCells = []
         neighbours = []
-        self.FixEdges()
         while not hasCompleted:
             # Get best cell cost
             bestCellPos = cellsToSearch[0]
@@ -240,12 +247,9 @@ class Enemy(Player):
                 if (self.FindCellInfo(cellPos, 'f') < self.FindCellInfo(bestCellPos, 'f') or (self.FindCellInfo(cellPos, 'f')
                  == self.FindCellInfo(bestCellPos, 'f') and self.FindCellInfo(cellPos, 'h') < self.FindCellInfo(bestCellPos, 'h'))):
                     bestCellPos = cellPos
-            
             processedCells.append(bestCellPos)
             cellsToSearch.remove(bestCellPos)
-
             neighbours = self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)
-            print("neighbours:", neighbours)
             if neighbours == -1:
                 # The below colours the processed cells and cells to search. Doesn't work currently
                 #for cellPos in processedCells:
@@ -256,6 +260,7 @@ class Enemy(Player):
                         #cell.image.fill(light_blue)
 
                 self.CompilePath(startCellPos, endCellPos)
+                hasCompleted = True
             if len(cellsToSearch) == 0:
                 hasCompleted == True
                 print("CANT COMPLETE PATH, ALL PROCESSED")
@@ -269,14 +274,17 @@ class Enemy(Player):
         while cellPos != startPos:
             if self.FindCellInfo(cellPos, 'g') >= 1000:
                 # If g cost bigger than 1000, must've done an illegal path
-                print("CANT COMPLETE PATH, ILLEGAL MOVE")
-            cellPos = self.GetCell(self.FindCellInfo(cellPos, 'parent')) # Gets cell object of parent cell
+                print("CANT COMPLETE PATH, ILLEGAL PATH")
+            cellPos = self.FindCellInfo(cellPos, 'parent') # Gets cell object of parent cell
             if cellPos != -1:
-                self.path.append(cellPos)
-            else:
-                # Reverses order of list since we follow it from end to start
-                # in this code, but the enemy needs to follow it from start to end
-                self.path.reverse()
+                cellObject = self.GetCell(cellPos)
+                self.path.append(cellObject)
+                showPathSprites.add(cellObject)
+        self.CleanPath()
+            
+        # Reverses order of list since we follow it from end to start
+        # in this code, but the enemy needs to follow it from start to end
+        self.path.reverse()
     
     def FollowPath(self):
         # Removes a cell from the path list if collided with
@@ -289,12 +297,24 @@ class Enemy(Player):
         for cell in pathSprites:
             if pos == cell.pos:
                 return cell
-        return None
+        return 'no cell found'
     
     def CreateLocalPathMap(self):
         self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
         for sprite in pathSprites:
             self.localPathMap.append([sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]])
+        self.FixEdges()
+    
+    def CleanPath(self):
+        # Wipes information from the local path map for the next pathfind
+        for item in self.localPathMap:
+            for i in range(len(item[1])):
+                if i < 2:
+                    item[1][i] = 0
+                elif i == 2:
+                    item[1][i] = -1
+                else:
+                    item[1][i] = False
     
     def FixEdges(self):
         positionList = []
@@ -302,7 +322,7 @@ class Enemy(Player):
             position = i[0]
             positionList.append(position)
             if self.FindCellInfo(position, 'hasObstacle'):
-                horizontalNPos = [[position[0] + 1, position[1]], [position[0], position[1] + 1], [position[0] - 1, position[1]], [position[0], position[1] - 1]]
+                horizontalNPos = [(position[0] + 1, position[1]), (position[0], position[1] + 1), (position[0] - 1, position[1]), (position[0], position[1] - 1)]
                 for pos in horizontalNPos:
                     if pos in positionList:
                         self.SetCellInfo(pos, 'nextToWall', True)
@@ -326,6 +346,7 @@ class Enemy(Player):
                 if wanted == 'f':
                     f = cell[1][0] + cell[1][1]
                     return f
+        return 'not found' 
                 
     def SetCellInfo(self, pos, wanted, change):
         # Changes cell information from local path map 
@@ -382,7 +403,7 @@ class Block(pygame.sprite.Sprite):
         self.g = 0
         self.h = 0
 
-        self.connectedCell = -1
+        self.connectedCell = -1 # -1 means no connected cell is assigned
         self.nextToWall = False
         self.hasObstacle = False
         self.isTarget = False
@@ -437,6 +458,7 @@ liveSprites = pygame.sprite.Group() # Group of all 'living' sprites that need up
 obstacles = pygame.sprite.Group() # Group of all immobile sprites. Checked when pathfinding to note down obstacles. 
                                   # This group is needed as only non-moving sprites are recorded.
 pathSprites = pygame.sprite.Group() # Group of sprites representing pathfinding script.
+showPathSprites = pygame.sprite.Group()
 
 player = Player()
 obstacle = Obstacle(20, 20, 300, 300)
@@ -462,12 +484,19 @@ background = pygame.Surface(screen.get_size())
 
 run = True
 
+pygame.time.set_timer(allowPathfinding, timeInterval)
+
 while run:
     screen.fill(black)
+    canPathfind = False
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        
+        if event.type == allowPathfinding:
+            canPathfind = True
+            showPathSprites.empty()
     
     for sprite in liveSprites:
         sprite.Update()
@@ -477,8 +506,7 @@ while run:
         screen.blit(sprite.image, sprite.rect)
         pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
 
-    for sprite in pathSprites:
-        if sprite.hasObstacle:
+    for sprite in showPathSprites:
             screen.blit(sprite.image, sprite.rect)
     
     pygame.display.update()
