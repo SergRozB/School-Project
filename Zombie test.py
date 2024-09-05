@@ -33,7 +33,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = 2
  
         # Create the image of the player
-        self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\TestSquare.png").convert_alpha(), 0, 1)
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\TestSquare.png").convert_alpha(), 0, 1)
         self.basePlayerImage = self.image
 
         # Get a rectangle object that shows where our image is
@@ -142,7 +142,7 @@ class Enemy(Player):
         self.pos = pygame.math.Vector2(x, y)
         self.direction = pygame.math.Vector2(0, 0)
         # Create the image of the player
-        self.image = pygame.transform.rotozoom(pygame.image.load("C:\Python School Stuff\School Game\Code\SpriteImages\goomba.png").convert_alpha(), 0, 0.25)
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\goomba.png").convert_alpha(), 0, 0.25)
         self.baseEnemyImage = self.image
 
         # Get a rectangle object that shows where our image is
