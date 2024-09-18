@@ -15,7 +15,7 @@ red = (255, 0, 0)
 screen = pygame.display.set_mode([screenW, screenH])
 clock = pygame.time.Clock()
 
-timeInterval = 1000 # Time interval for when to pathfind in miliseconds
+timeInterval = 5000 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
@@ -164,7 +164,8 @@ class Enemy(Player):
     def RotateToTarget(self):
         x = self.hitboxRect.centerx
         y = self.hitboxRect.centery
-        Tx, Ty = self.target.pos
+        Tx, Ty = self.target.rect.center
+        #print("tx ty:", Tx, Ty)
         xDist = Tx - x
         yDist = Ty - y
         self.angle = math.degrees(math.atan2(yDist, xDist))
@@ -176,9 +177,11 @@ class Enemy(Player):
         
     def Update(self):
         """ Update the position of the enemy """
-        print("target:", self.target, "|pos:", self.target.pos)
+        #print("target:", self.target, "|pos:", self.target.pos)
         if canPathfind:
             self.Pathfind()
+        
+        #print("pos:", self.target.pos)
         if len(self.path) > 0:
             self.FollowPath()
         self.RotateToTarget()
