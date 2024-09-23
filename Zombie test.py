@@ -15,7 +15,7 @@ red = (255, 0, 0)
 screen = pygame.display.set_mode([screenW, screenH])
 clock = pygame.time.Clock()
 
-timeInterval = 5000 # Time interval for when to pathfind in miliseconds
+timeInterval = 500 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
@@ -204,27 +204,29 @@ class Enemy(Player):
         northEastNPos = (sourcePos[0] - 1, sourcePos[1] - 1)
         neighboursPos = [northNPos, northWestNPos, westNPos, southWesthNPos, southNPos, southEastNPos, eastNPos, northEastNPos]
         neighbours = []
-        for block in pathSprites:
+        for pos in neighboursPos:
+            # Checks if the position exists
+            if self.FindCellInfo(pos, 'exists'):
 
-            if self.FindCellInfo(block.pos, 'isTarget') and block.pos in neighboursPos: # Checks if the target cell is a neighbour
-                if self.CheckIfDiagonal(block.pos, sourcePos) == False: # Checks if the target cell is at a diagonal distance from the source 
-                    self.SetCellInfo(block.pos, 'parent', sourcePos)
-                    return -1 # Returns -1, signifying that the target cell was found
-            
-            elif block.pos in neighboursPos and not self.FindCellInfo(block.pos, 'hasObstacle') and block.pos not in processedList:
-                costToN = self.FindCellInfo(block.pos, 'g') + GetDist(sourcePos, block.pos) # The g cost from the source cell
+                if self.FindCellInfo(pos, 'isTarget'): # Checks if the target cell is a neighbour
+                    if self.CheckIfDiagonal(pos, sourcePos) == False: # Checks if the target cell is at a diagonal distance from the source 
+                        self.SetCellInfo(pos, 'parent', sourcePos)
+                        return -1 # Returns -1, signifying that the target cell was found
                 
-                if self.CheckIfDiagonal(block.pos, sourcePos) and self.FindCellInfo(block.pos, 'nextToWall') == True:
-                    costToN += 1000
+                elif not self.FindCellInfo(pos, 'hasObstacle') and pos not in processedList:
+                    costToN = self.FindCellInfo(pos, 'g') + GetDist(sourcePos, pos) # The g cost from the source cell
+                    
+                    if self.CheckIfDiagonal(pos, sourcePos) and self.FindCellInfo(pos, 'nextToWall') == True:
+                        costToN += 1000
 
-                if block.pos not in cellsToSearch or costToN < self.FindCellInfo(block.pos, 'g'):
-                    self.SetCellInfo(block.pos, 'g', costToN)
-                    self.SetCellInfo(block.pos, 'parent', sourcePos)
+                    if pos not in cellsToSearch or costToN < self.FindCellInfo(pos, 'g'):
+                        self.SetCellInfo(pos, 'g', costToN)
+                        self.SetCellInfo(pos, 'parent', sourcePos)
 
-                    if block.pos not in cellsToSearch:
-                        self.SetCellInfo(block.pos, 'h', GetDist(block.pos, endPos))
-                        cellsToSearch.append(block.pos) 
-                neighbours.append(block.pos)
+                        if pos not in cellsToSearch:
+                            self.SetCellInfo(pos, 'h', GetDist(pos, endPos))
+                            cellsToSearch.append(pos) 
+                    neighbours.append(pos)
         return neighbours
     
     def CheckIfDiagonal(self, pos, sourcePos):
@@ -354,6 +356,8 @@ class Enemy(Player):
                 if wanted == 'f':
                     f = cell[1][0] + cell[1][1]
                     return f
+                if wanted == 'exists':
+                    return True
         return 'not found' 
                 
     def SetCellInfo(self, pos, wanted, change):
