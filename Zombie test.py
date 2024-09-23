@@ -160,6 +160,10 @@ class Enemy(Player):
         self.target = player
 
         self.path = []
+        # Every value is an array with the 0 index value being the left (lower)
+        # child and the 1 index value being the right (higher) child in terms
+        # of f cost
+        self.binaryTreeF = {}
 
     def RotateToTarget(self):
         x = self.hitboxRect.centerx
@@ -336,6 +340,7 @@ class Enemy(Player):
                 for pos in horizontalNPos:
                     if pos in positionList:
                         self.SetCellInfo(pos, 'nextToWall', True)
+    
     
     def FindCellInfo(self, pos, wanted):
         # Finds cell information from local path map 
