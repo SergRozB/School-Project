@@ -291,10 +291,15 @@ class Enemy(Player):
     
     def FollowPath(self):
         # Removes a cell from the path list if collided with
-        self.target = self.path[0]
-        if self.hitboxRect.colliderect(self.path[0].rect):
-            self.path.remove(self.path[0]) 
-            self.target = self.path[0]   
+        print("len:", len(self.path))
+        if len(self.path) == 1:
+            self.target = player
+        else:
+            self.target = self.path[0]
+            if self.hitboxRect.colliderect(self.path[0].rect):
+                self.path.remove(self.path[0]) 
+                self.target = self.path[0]   
+        
 
     def GetCell(self, pos):
         for cell in pathSprites:
