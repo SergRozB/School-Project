@@ -160,10 +160,12 @@ class Enemy(Player):
         self.target = player
 
         self.path = []
+
+        self.override = False # Determins wether to override pathfinding
         # Every value is an array with the 0 index value being the left (lower)
         # child and the 1 index value being the right (higher) child in terms
         # of f cost
-        self.binaryTreeF = {}
+        self.rootNode = None
 
     def RotateToTarget(self):
         x = self.hitboxRect.centerx
@@ -252,10 +254,21 @@ class Enemy(Player):
         while not hasCompleted:
             # Get best cell cost
             bestCellPos = cellsToSearch[0]
+            bestF = self.FindCellInfo(bestCellPos, 'f')
+            self.rootNode = TreeNode(bestF, bestCellPos)
+
             for cellPos in cellsToSearch:
-                if (self.FindCellInfo(cellPos, 'f') < self.FindCellInfo(bestCellPos, 'f') or (self.FindCellInfo(cellPos, 'f')
-                 == self.FindCellInfo(bestCellPos, 'f') and self.FindCellInfo(cellPos, 'h') < self.FindCellInfo(bestCellPos, 'h'))):
-                    bestCellPos = cellPos
+                self.rootNode.Insert(self.FindCellInfo(cellPos, 'f'), cellPos)
+            print("HEY:", self.rootNode.FindLowest())
+            lowest = self.rootNode.FindLowest()
+            if lowest is None:
+                self.rootNode.InorderTraversal()
+            print("lowest:", lowest)
+            lowestF = lowest[0]
+            lowestCellPos = lowest[1]
+
+            if lowestF < bestF or (lowestF == bestF and self.FindCellInfo(lowestCellPos, 'h') < self.FindCellInfo(bestCellPos, 'h')):
+                bestCellPos = lowestCellPos
             processedCells.append(bestCellPos)
             cellsToSearch.remove(bestCellPos)
             neighbours = self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)
@@ -281,9 +294,17 @@ class Enemy(Player):
         self.path = [self.GetCell(endPos)]
         cellPos = endPos
         while cellPos != startPos:
-            if self.FindCellInfo(cellPos, 'g') >= 1000:
+            if self.FindCellInfo(cellPos, 'g') == "not found":
+                #If no parent, override pathfinding
+                print("ERROR: No parent detected")
+                self.override = True
+                return
+            elif self.FindCellInfo(cellPos, 'g') >= 1000:
                 # If g cost bigger than 1000, must've done an illegal path
                 print("CANT COMPLETE PATH, ILLEGAL PATH")
+                self.override = True
+            else:
+                self.override = False
             cellPos = self.FindCellInfo(cellPos, 'parent') # Gets cell object of parent cell
             if cellPos != -1:
                 cellObject = self.GetCell(cellPos)
@@ -297,8 +318,7 @@ class Enemy(Player):
     
     def FollowPath(self):
         # Removes a cell from the path list if collided with
-        print("len:", len(self.path))
-        if len(self.path) == 1:
+        if len(self.path) == 1 or self.override:
             self.target = player
         else:
             self.target = self.path[0]
@@ -327,18 +347,16 @@ class Enemy(Player):
                     item[1][i] = 0
                 elif i == 2:
                     item[1][i] = -1
-                elif i != 4:
+                elif i != 4 and i != 3:
                     item[1][i] = False
     
     def FixEdges(self):
-        positionList = []
         for i in self.localPathMap:
             position = i[0]
-            positionList.append(position)
             if self.FindCellInfo(position, 'hasObstacle'):
                 horizontalNPos = [(position[0] + 1, position[1]), (position[0], position[1] + 1), (position[0] - 1, position[1]), (position[0], position[1] - 1)]
                 for pos in horizontalNPos:
-                    if pos in positionList:
+                    if self.FindCellInfo(pos, 'exists'):
                         self.SetCellInfo(pos, 'nextToWall', True)
     
     
@@ -387,6 +405,43 @@ class Enemy(Player):
         for cell in pathSprites:
             if cell.rect.colliderect(rect):
                 return cell.pos
+
+class TreeNode():
+    # Binary tree to more efficiently search for cells
+    def __init__(self, value, pos):
+        self.left = None
+        self.right = None
+        self.value = value
+        self.pos = pos
+
+    def Insert(self, value, pos):
+        if value < self.value:
+            if self.left is None:
+                self.left = TreeNode(value, pos)
+            else:
+                self.left.Insert(value, pos)
+        else:
+            if self.right is None:
+                self.right = TreeNode(value, pos)
+            else:
+                self.right.Insert(value, pos)
+
+    def InorderTraversal(self):
+        if self.left:
+            self.left.InorderTraversal()
+        print(self.value, self.pos)
+        if self.right:
+            self.right.InorderTraversal()
+
+    def FindLowest(self):
+        # Finds the lowest value from the current node, which 
+        # may not necessarily be the lowest unless called from
+        # the root node
+        if self.left is not None:
+            self.left.FindLowest()
+        elif self.left is None:
+            print("valuee:", self.value)
+            return [self.value, self.pos]
 
 class Obstacle(pygame.sprite.Sprite):
     # Obstacle sprite, can't move
