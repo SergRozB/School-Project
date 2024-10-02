@@ -327,7 +327,7 @@ class Enemy(Player):
                     item[1][i] = 0
                 elif i == 2:
                     item[1][i] = -1
-                else:
+                elif i != 4:
                     item[1][i] = False
     
     def FixEdges(self):
