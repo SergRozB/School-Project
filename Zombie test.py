@@ -19,7 +19,9 @@ timeInterval = 500 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
-blockWidth = 20
+blockWidth = 40
+horizontalCount = math.ceil(screenW/blockWidth) 
+verticalCount = math.ceil(screenH/blockWidth) 
 
 class Player(pygame.sprite.Sprite):
     # Constructor. 
@@ -186,6 +188,7 @@ class Enemy(Player):
         #print("target:", self.target, "|pos:", self.target.pos)
         if canPathfind:
             self.Pathfind()
+            print("player cell:",self.GetRectCellPos(player.hitboxRect))
         
         #print("pos:", self.target.pos)
         if len(self.path) > 0:
@@ -246,6 +249,7 @@ class Enemy(Player):
     def Pathfind(self):
         endCellPos = self.GetRectCellPos(player.hitboxRect)
         startCellPos = self.GetRectCellPos(self.hitboxRect)
+        #print("Start cell pos:", startCellPos)
         self.SetCellInfo(endCellPos, 'isTarget', True)
         hasCompleted = False
         cellsToSearch = [startCellPos]
@@ -259,11 +263,9 @@ class Enemy(Player):
 
             for cellPos in cellsToSearch:
                 self.rootNode.Insert(self.FindCellInfo(cellPos, 'f'), cellPos)
-            print("HEY:", self.rootNode.FindLowest())
             lowest = self.rootNode.FindLowest()
             if lowest is None:
                 self.rootNode.InorderTraversal()
-            print("lowest:", lowest)
             lowestF = lowest[0]
             lowestCellPos = lowest[1]
 
@@ -325,7 +327,6 @@ class Enemy(Player):
             if self.hitboxRect.colliderect(self.path[0].rect):
                 self.path.remove(self.path[0]) 
                 self.target = self.path[0]   
-        
 
     def GetCell(self, pos):
         for cell in pathSprites:
@@ -337,6 +338,8 @@ class Enemy(Player):
         self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
         for sprite in pathSprites:
             self.localPathMap.append([sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]])
+            #print("pos:", sprite.pos)
+        #print("len:", len(pathSprites))
         self.FixEdges()
     
     def CleanPath(self):
@@ -361,8 +364,15 @@ class Enemy(Player):
     
     
     def FindCellInfo(self, pos, wanted):
-        # Finds cell information from local path map 
-        for cell in self.localPathMap:
+        # Finds cell information from local path map
+        if pos == -1 or type(pos) == str:
+            print("ERROR: bad pos")
+            return "no pos"
+        y = pos[1]
+        x = pos[0]
+        for i in range(verticalCount):
+            cell = self.localPathMap[(y-1)*horizontalCount + x-1]
+            #print("cell pos:", cell[0],"|Calculation:", (y-1)*horizontalCount + x-1,"| horizontal count", horizontalCount, "|pos wanted:", pos, "Y:", y)
             if cell[0] == pos:
                 if wanted == 'g':
                     return cell[1][0]
@@ -384,8 +394,14 @@ class Enemy(Player):
         return 'not found' 
                 
     def SetCellInfo(self, pos, wanted, change):
-        # Changes cell information from local path map 
-        for cell in self.localPathMap:
+        # Changes cell information from local path map
+        if pos == -1 or type(pos) == str:
+            print("ERROR: bad pos")
+            return "no pos"
+        y = pos[1]
+        x = pos[0]
+        for cell in range(verticalCount):
+            cell = self.localPathMap[(y-1)*horizontalCount + x-1]
             if cell[0] == pos:
                 if wanted == 'g':
                     cell[1][0] = change
@@ -405,6 +421,8 @@ class Enemy(Player):
         for cell in pathSprites:
             if cell.rect.colliderect(rect):
                 return cell.pos
+            else:
+                return "none found"
 
 class TreeNode():
     # Binary tree to more efficiently search for cells
@@ -438,9 +456,8 @@ class TreeNode():
         # may not necessarily be the lowest unless called from
         # the root node
         if self.left is not None:
-            self.left.FindLowest()
+            return self.left.FindLowest()
         elif self.left is None:
-            print("valuee:", self.value)
             return [self.value, self.pos]
 
 class Obstacle(pygame.sprite.Sprite):
@@ -506,8 +523,6 @@ def GetDist(startPos, targetPos):
 
 def CreateObstacleMap():
     top = 0
-    horizontalCount = math.ceil(screenW/blockWidth)
-    verticalCount = math.ceil(screenH/blockWidth)
     y = 0
     for row in range(verticalCount):
         y += 1
@@ -543,7 +558,7 @@ obstacles.add(obstacle)
 CreateObstacleMap()
 
 for _ in range(1):
-    enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
+    enemy = Enemy(random.randint(1, screenW-100), random.randint(1, screenH-100))
     allSprites.add(enemy)
     liveSprites.add(enemy)
 
@@ -580,8 +595,11 @@ while run:
 
     for sprite in showPathSprites:
             screen.blit(sprite.image, sprite.rect)
+    #for sprite in pathSprites:
+        #screen.blit(sprite.image, sprite.rect)
     
     pygame.display.update()
     clock.tick(60)
     
 pygame.quit()
+
