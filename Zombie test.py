@@ -188,7 +188,6 @@ class Enemy(Player):
         #print("target:", self.target, "|pos:", self.target.pos)
         if canPathfind:
             self.Pathfind()
-            print("player cell:",self.GetRectCellPos(player.hitboxRect))
         
         #print("pos:", self.target.pos)
         if len(self.path) > 0:
@@ -296,7 +295,7 @@ class Enemy(Player):
         self.path = [self.GetCell(endPos)]
         cellPos = endPos
         while cellPos != startPos:
-            if self.FindCellInfo(cellPos, 'g') == "not found":
+            if type(self.FindCellInfo(cellPos, 'g')) == str:
                 #If no parent, override pathfinding
                 print("ERROR: No parent detected")
                 self.override = True
@@ -421,8 +420,8 @@ class Enemy(Player):
         for cell in pathSprites:
             if cell.rect.colliderect(rect):
                 return cell.pos
-            else:
-                return "none found"
+            
+        return "none found"
 
 class TreeNode():
     # Binary tree to more efficiently search for cells
@@ -557,8 +556,8 @@ obstacles.add(obstacle)
 
 CreateObstacleMap()
 
-for _ in range(1):
-    enemy = Enemy(random.randint(1, screenW-100), random.randint(1, screenH-100))
+for _ in range(15):
+    enemy = Enemy(random.randint(1, screenW-50), random.randint(1, screenH+50))
     allSprites.add(enemy)
     liveSprites.add(enemy)
 
@@ -593,8 +592,8 @@ while run:
         screen.blit(sprite.image, sprite.rect)
         pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
 
-    for sprite in showPathSprites:
-            screen.blit(sprite.image, sprite.rect)
+    #for sprite in showPathSprites:
+            #screen.blit(sprite.image, sprite.rect)
     #for sprite in pathSprites:
         #screen.blit(sprite.image, sprite.rect)
     
