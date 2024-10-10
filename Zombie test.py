@@ -182,7 +182,50 @@ class Enemy(Player):
         self.direction = pygame.math.Vector2(velX, velY)
         self.image = pygame.transform.rotate(self.baseEnemyImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
-        
+        self.rect.center = self.hitboxRect.center
+    
+    def CreateLocalSprites(self, sprites):
+        self.localSprites = pygame.sprite.Group()
+        for sprite in sprites:
+            if sprite.hitboxRect != self.hitboxRect and sprite not in enemySprites:
+                self.localSprites.add(sprite)
+    
+    def CheckCollision(self, direction):
+        collisionSprites = pygame.sprite.spritecollide(self, self.localSprites, False)
+        for sprite in collisionSprites:
+            if direction == 'horizontal':
+                # If collision on the right
+                if self.hitboxRect.right >= sprite.hitboxRect.left and self.oldRect.right <= sprite.oldRect.left:
+                    self.hitboxRect.right = sprite.hitboxRect.left
+                    self.pos.x = self.hitboxRect.x
+                
+                # If collision on the left
+                if self.hitboxRect.left <= sprite.hitboxRect.right and self.oldRect.left >= sprite.oldRect.right:
+                    self.hitboxRect.left = sprite.hitboxRect.right
+                    self.pos.x = self.hitboxRect.x
+
+            if direction == 'vertical':
+                # If collision on the top
+                if self.hitboxRect.bottom >= sprite.hitboxRect.top and self.oldRect.bottom <= sprite.oldRect.top:
+                    self.hitboxRect.bottom = sprite.hitboxRect.top
+                    self.pos.y = self.hitboxRect.y
+                
+                # If collision on the bottom
+                if self.hitboxRect.top <= sprite.hitboxRect.bottom and self.oldRect.top >= sprite.oldRect.bottom:
+                    self.hitboxRect.top = sprite.hitboxRect.bottom
+                    self.pos.y = self.hitboxRect.y
+
+    def Move(self):
+        self.pos.x += self.direction.x * self.speed
+        self.hitboxRect.x = round(self.pos.x)
+        self.CheckCollision('horizontal')
+
+        self.pos.y += self.direction.y * self.speed
+        self.hitboxRect.y = round(self.pos.y)
+        self.CheckCollision('vertical')
+
+        self.rect.center = self.hitboxRect.center    
+
     def Update(self):
         """ Update the position of the enemy """
         #print("target:", self.target, "|pos:", self.target.pos)
@@ -545,6 +588,7 @@ obstacles = pygame.sprite.Group() # Group of all immobile sprites. Checked when 
                                   # This group is needed as only non-moving sprites are recorded.
 pathSprites = pygame.sprite.Group() # Group of sprites representing pathfinding script.
 showPathSprites = pygame.sprite.Group()
+enemySprites = pygame.sprite.Group() # Group of enemy sprites.
 
 player = Player()
 obstacle = Obstacle(20, 20, 300, 300)
@@ -556,10 +600,11 @@ obstacles.add(obstacle)
 
 CreateObstacleMap()
 
-for _ in range(15):
-    enemy = Enemy(random.randint(1, screenW-50), random.randint(1, screenH+50))
+for _ in range(30):
+    enemy = Enemy(random.randint(1, screenW-50), random.randint(1, screenH-50))
     allSprites.add(enemy)
     liveSprites.add(enemy)
+    enemySprites.add(enemy)
 
 for sprite in liveSprites:
     sprite.CreateLocalSprites(allSprites)
@@ -601,4 +646,3 @@ while run:
     clock.tick(60)
     
 pygame.quit()
-
