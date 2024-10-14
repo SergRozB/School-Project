@@ -151,7 +151,7 @@ class Enemy(Player):
         self.hitboxRect = self.baseEnemyImage.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
- 
+        self.closeRect = pygame.Rect(50, 50, 50, 50)
         # Get attributes for the height/width of the screen
         self.screenheight = pygame.display.get_surface().get_height()
         self.screenwidth = pygame.display.get_surface().get_width()
@@ -236,8 +236,18 @@ class Enemy(Player):
         if len(self.path) > 0:
             self.FollowPath()
         self.RotateToTarget()
+        #self.Separate(0.2)
         self.Move()
         self.oldRect = self.hitboxRect.copy()
+        self.closeRect.center = self.hitboxRect.center
+        pygame.draw.rect(screen, white, self.closeRect)
+    
+    def Separate(self, factor):
+        enemyClose = enemyRects[self.closeRect.collidelist(enemyRects)]
+        x = self.pos.x - enemyClose.x
+        y = self.pos.y - enemyClose.y
+        self.direction.x += x*factor
+        self.direction.y += y*factor
     
     def GetNeighbours(self, sourcePos, endPos, processedList, cellsToSearch):
         # GET NEIGHBOURS APPEARS FINISHED #
@@ -589,6 +599,7 @@ obstacles = pygame.sprite.Group() # Group of all immobile sprites. Checked when 
 pathSprites = pygame.sprite.Group() # Group of sprites representing pathfinding script.
 showPathSprites = pygame.sprite.Group()
 enemySprites = pygame.sprite.Group() # Group of enemy sprites.
+enemyRects = [] # List of enemy rects
 
 player = Player()
 obstacle = Obstacle(20, 20, 300, 300)
@@ -605,6 +616,7 @@ for _ in range(30):
     allSprites.add(enemy)
     liveSprites.add(enemy)
     enemySprites.add(enemy)
+    enemyRects.append(enemy.hitboxRect)
 
 for sprite in liveSprites:
     sprite.CreateLocalSprites(allSprites)
