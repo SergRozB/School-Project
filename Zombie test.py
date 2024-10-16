@@ -1,6 +1,8 @@
 import pygame
 import math
 import random
+import BinaryTree
+import PathfindingBlock
 
 pygame.init()
 
@@ -20,8 +22,8 @@ canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
 blockWidth = 40
-horizontalCount = math.ceil(screenW/blockWidth) 
-verticalCount = math.ceil(screenH/blockWidth) 
+horizontalCount = math.ceil(screenW/blockWidth) + 5
+verticalCount = math.ceil(screenH/blockWidth) + 5
 
 class Player(pygame.sprite.Sprite):
     # Constructor. 
@@ -157,7 +159,7 @@ class Enemy(Player):
         self.screenwidth = pygame.display.get_surface().get_width()
 
         # Velocity
-        self.speed = 1
+        self.speed = 1.2
 
         self.target = player
 
@@ -236,7 +238,7 @@ class Enemy(Player):
         if len(self.path) > 0:
             self.FollowPath()
         self.RotateToTarget()
-        #self.Separate(0.2)
+        self.Separate(0.05)
         self.Move()
         self.oldRect = self.hitboxRect.copy()
         self.closeRect.center = self.hitboxRect.center
@@ -311,7 +313,7 @@ class Enemy(Player):
             # Get best cell cost
             bestCellPos = cellsToSearch[0]
             bestF = self.FindCellInfo(bestCellPos, 'f')
-            self.rootNode = TreeNode(bestF, bestCellPos)
+            self.rootNode = BinaryTree.TreeNode(bestF, bestCellPos)
 
             for cellPos in cellsToSearch:
                 self.rootNode.Insert(self.FindCellInfo(cellPos, 'f'), cellPos)
@@ -476,42 +478,6 @@ class Enemy(Player):
             
         return "none found"
 
-class TreeNode():
-    # Binary tree to more efficiently search for cells
-    def __init__(self, value, pos):
-        self.left = None
-        self.right = None
-        self.value = value
-        self.pos = pos
-
-    def Insert(self, value, pos):
-        if value < self.value:
-            if self.left is None:
-                self.left = TreeNode(value, pos)
-            else:
-                self.left.Insert(value, pos)
-        else:
-            if self.right is None:
-                self.right = TreeNode(value, pos)
-            else:
-                self.right.Insert(value, pos)
-
-    def InorderTraversal(self):
-        if self.left:
-            self.left.InorderTraversal()
-        print(self.value, self.pos)
-        if self.right:
-            self.right.InorderTraversal()
-
-    def FindLowest(self):
-        # Finds the lowest value from the current node, which 
-        # may not necessarily be the lowest unless called from
-        # the root node
-        if self.left is not None:
-            return self.left.FindLowest()
-        elif self.left is None:
-            return [self.value, self.pos]
-
 class Obstacle(pygame.sprite.Sprite):
     # Obstacle sprite, can't move
     def __init__(self, width, height, x, y):
@@ -528,41 +494,6 @@ class Obstacle(pygame.sprite.Sprite):
         self.hitboxRect = self.image.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
-
-class Block(pygame.sprite.Sprite):
-    
-    def __init__(self, x, y):
-        super().__init__()
-
-        self.image = pygame.Surface([blockWidth, blockWidth])
-        self.image.fill(white)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-
-        self.pos = (0,0)
-        self.g = 0
-        self.h = 0
-
-        self.connectedCell = -1 # -1 means no connected cell is assigned
-        self.nextToWall = False
-        self.hasObstacle = False
-        self.isTarget = False
-    
-    def GetDist(self, targetPos):
-        changeY = abs(self.pos[1] - targetPos[1]) 
-        changeX = abs(self.pos[0] - targetPos[0])
-        if changeX > changeY:
-            dist = 14*(changeY) + 10*(abs(changeX - changeY))
-            return dist
-        dist = 14*(changeX) + 10*(abs(changeY - changeX))
-        return dist
-    
-    def GetFCost(self):
-        return self.g + self.h
-    
-    def changeColour(self, colour):
-        self.image.fill(colour)
 
 def GetDist(startPos, targetPos):
         changeY = abs(startPos[1] - targetPos[1]) 
@@ -581,7 +512,7 @@ def CreateObstacleMap():
         x = 0
         for column in range(0, horizontalCount):
             x += 1
-            block = Block(column * (blockWidth), top)
+            block = PathfindingBlock.Block(column * (blockWidth), top, blockWidth, white)
             block.pos = (x,y)
             pathSprites.add(block)
         top += blockWidth
@@ -611,7 +542,7 @@ obstacles.add(obstacle)
 
 CreateObstacleMap()
 
-for _ in range(30):
+for _ in range(1):
     enemy = Enemy(random.randint(1, screenW-50), random.randint(1, screenH-50))
     allSprites.add(enemy)
     liveSprites.add(enemy)
