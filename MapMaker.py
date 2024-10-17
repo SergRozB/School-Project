@@ -1,18 +1,18 @@
 import pygame
-screen = pygame.display.set_mode((452, 256))
+screen = pygame.display.set_mode((1000, 500))
 white = (255, 255, 255)
 map = """
-         WWWWWWWWWWWWWWWWWWWWWWWWWWW
-         W                         W
-         W    w                    W
-         W                         W
-         W                         W
-         W            WWW          W
-         W                         W
-         W                         W
-         W                         W
-         W                         W
-         WWWWWWWWWWWWWWWWWWWWWWWWWWW"""
+         WWWWWWWWWWWWWWW
+         W             W
+         W             W
+         W             W
+         W             W
+         W             W
+         W             W
+         W             W
+         W             W
+         W             W
+         WWWWWWWWWWWWWWW"""
 
 map = map.splitlines()
 for line in map:
@@ -20,12 +20,12 @@ for line in map:
 
 #tile = pygame.surface.Surface([10, 10])
 #tile.fill(white)
-tile = pygame.image.load("SpriteImages\goomba.png")
+tile = pygame.image.load("SpriteImages\Tile1.png")
 def CreateMap(map, screen):
     for y, line in enumerate(map):
-        for x, c in enumerate(line):
-            if c == "W":
-                screen.blit(tile, (x*16, y*16))
+        for x, character in enumerate(line):
+            if character == "W":
+                screen.blit(tile, (x*32-100, y*32))
     
 loop = True
 while loop:
