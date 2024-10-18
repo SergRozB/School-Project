@@ -1,9 +1,6 @@
-from pygame import image
-from pygame import display
-from pygame import quit
-from pygame import event
+import pygame
 
-screen = display.set_mode((1000, 500))
+screen = pygame.display.set_mode((1000, 500))
 white = (255, 255, 255)
 map = """
          WWWWWWWWWWWWWWW
@@ -24,7 +21,7 @@ for line in map:
 
 #tile = pygame.surface.Surface([10, 10])
 #tile.fill(white)
-tile = image.load("SpriteImages\Tile1.png")
+tile = pygame.image.load("SpriteImages\Tile1.png")
 def CreateMap(map, screen):
     for y, line in enumerate(map):
         for x, character in enumerate(line):
@@ -35,8 +32,8 @@ loop = True
 while loop:
     screen.fill((0, 0, 0))
     CreateMap(map, screen)
-    display.update()
-    for event in event.get():
-        if event.type == quit:
+    pygame.display.update()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
             loop = False
-quit()
+pygame.quit()
