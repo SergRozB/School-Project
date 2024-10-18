@@ -3,6 +3,7 @@ import math
 import random
 import BinaryTree
 import PathfindingBlock
+import MapMaker
 
 pygame.init()
 
