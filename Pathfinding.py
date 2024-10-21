@@ -1,10 +1,20 @@
 import BinaryTree
+import PathfindingBlock
+import pygame
+
+white = (255, 255, 255)
+red = (255, 0, 0)
 
 class Pathfinding():
-    def __init__(self, horizontalCount, verticalCount):
-        self.horizontalCount = horizontalCount
-        self.verticalCount = verticalCount
-        
+
+    def __init__(self, blockCount, showSpriteGroup, pathSprites):
+        # Block count needs to be array in form (horizontalCount, verticalCount)
+        self.horizontalCount = blockCount[0]
+        self.verticalCount = blockCount[1]
+        self.showSpriteGroup = showSpriteGroup
+        self.pathSprites = pathSprites
+        self.override = False
+
     def GetNeighbours(self, sourcePos, endPos, processedList, cellsToSearch):
         # GET NEIGHBOURS APPEARS FINISHED #
         # Takes the position of the source cell, and its g cost.
@@ -54,10 +64,10 @@ class Pathfinding():
                 return True
         return False
 
-    def Pathfind(self, origin, target):
+    def Pathfind(self, originRect, targetRect):
         # The target and origin objects MUST have a rect called "hitboxRect"
-        endCellPos = self.GetRectCellPos(target.hitboxRect)
-        startCellPos = self.GetRectCellPos(origin.hitboxRect)
+        endCellPos = self.GetRectCellPos(targetRect)
+        startCellPos = self.GetRectCellPos(originRect)
         #print("Start cell pos:", startCellPos)
         self.SetCellInfo(endCellPos, 'isTarget', True)
         hasCompleted = False
@@ -120,22 +130,22 @@ class Pathfinding():
             if cellPos != -1:
                 cellObject = self.GetCell(cellPos)
                 self.path.append(cellObject)
-                showPathSprites.add(cellObject)
+                self.showPathGroup.add(cellObject)
         self.CleanPath()
             
         # Reverses order of list since we follow it from end to start
         # in this code, but the enemy needs to follow it from start to end
         self.path.reverse()
     
-     def FindCellInfo(self, pos, wanted):
+    def FindCellInfo(self, pos, wanted):
         # Finds cell information from local path map
         if pos == -1 or type(pos) == str:
             print("ERROR: bad pos")
             return "no pos"
         y = pos[1]
         x = pos[0]
-        for i in range(verticalCount):
-            cell = self.localPathMap[(y-1)*horizontalCount + x-1]
+        for i in range(self.verticalCount):
+            cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
             #print("cell pos:", cell[0],"|Calculation:", (y-1)*horizontalCount + x-1,"| horizontal count", horizontalCount, "|pos wanted:", pos, "Y:", y)
             if cell[0] == pos:
                 if wanted == 'g':
@@ -164,8 +174,8 @@ class Pathfinding():
             return "no pos"
         y = pos[1]
         x = pos[0]
-        for cell in range(verticalCount):
-            cell = self.localPathMap[(y-1)*horizontalCount + x-1]
+        for cell in range(self.verticalCount):
+            cell = self.localPathMap[(y-1)self.horizontalCount + x-1]
             if cell[0] == pos:
                 if wanted == 'g':
                     cell[1][0] = change
@@ -189,28 +199,9 @@ class Pathfinding():
         dist = 14*(changeX) + 10*(abs(changeY - changeX))
         return dist
     
-    def CreateObstacleMap():
-    top = 0
-    y = 0
-    for row in range(verticalCount):
-        y += 1
-        x = 0
-        for column in range(0, horizontalCount):
-            x += 1
-            block = PathfindingBlock.Block(column * (blockWidth), top, blockWidth, white)
-            block.pos = (x,y)
-            pathSprites.add(block)
-        top += blockWidth
-    
-    for block in pathSprites:
-        blockCollide = pygame.sprite.spritecollide(block, obstacles, False)
-        if len(blockCollide) > 0:
-            block.changeColour(red)
-            block.hasObstacle = True
-    
     def CreateLocalPathMap(self):
         self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
-        for sprite in pathSprites:
+        for sprite in self.pathSprites:
             self.localPathMap.append([sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]])
             #print("pos:", sprite.pos)
         #print("len:", len(pathSprites))
@@ -228,7 +219,30 @@ class Pathfinding():
                     item[1][i] = False
     
     def GetCell(self, pos):
-        for cell in pathSprites:
+        for cell in self.pathSprites:
             if pos == cell.pos:
                 return cell
         return 'no cell found'
+    
+def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup):
+    # Needs to be used before pathfinding method
+    # Block count needs to be array in form (horizontalCount, verticalCount)
+    verticalCount = blockCount[0]
+    horizontalCount = blockCount[1]
+    top = 0
+    y = 0
+    for row in range(verticalCount):
+        y += 1
+        x = 0
+        for column in range(0, horizontalCount):
+            x += 1
+            block = PathfindingBlock.Block(column * (blockWidth), top, blockWidth, white)
+            block.pos = (x,y)
+            pathSpritesGroup.add(block)
+        top += blockWidth
+
+    for block in pathSpritesGroup:
+        blockCollide = pygame.sprite.spritecollide(block, obstacles, False)
+        if len(blockCollide) > 0:
+            block.changeColour(red)
+            block.hasObstacle = True
