@@ -14,9 +14,9 @@ class Pathfinding():
         self.showSpriteGroup = showSpriteGroup
         self.pathSprites = pathSprites
         self.override = False
+        self.path = []
 
     def GetNeighbours(self, sourcePos, endPos, processedList, cellsToSearch):
-        # GET NEIGHBOURS APPEARS FINISHED #
         # Takes the position of the source cell, and its g cost.
         # Gets the neighbour objects of the said cell and returns them.
         # Also returns a list containing -1 if the target is the neighbour. 
@@ -105,7 +105,7 @@ class Pathfinding():
                 self.CompilePath(startCellPos, endCellPos)
                 hasCompleted = True
             if len(cellsToSearch) == 0:
-                hasCompleted == True
+                hasCompleted = True
                 print("CANT COMPLETE PATH, ALL PROCESSED")
                 return -1
     
@@ -130,7 +130,7 @@ class Pathfinding():
             if cellPos != -1:
                 cellObject = self.GetCell(cellPos)
                 self.path.append(cellObject)
-                self.showPathGroup.add(cellObject)
+                self.showSpriteGroup.add(cellObject)
         self.CleanPath()
             
         # Reverses order of list since we follow it from end to start
@@ -145,8 +145,10 @@ class Pathfinding():
         y = pos[1]
         x = pos[0]
         for i in range(self.verticalCount):
+            #print("|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
+            #print("len:", len(self.localPathMap))
             cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
-            #print("cell pos:", cell[0],"|Calculation:", (y-1)*horizontalCount + x-1,"| horizontal count", horizontalCount, "|pos wanted:", pos, "Y:", y)
+            #print("cell pos:", cell[0],"|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
             if cell[0] == pos:
                 if wanted == 'g':
                     return cell[1][0]
@@ -175,7 +177,7 @@ class Pathfinding():
         y = pos[1]
         x = pos[0]
         for cell in range(self.verticalCount):
-            cell = self.localPathMap[(y-1)self.horizontalCount + x-1]
+            cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
             if cell[0] == pos:
                 if wanted == 'g':
                     cell[1][0] = change
@@ -190,7 +192,7 @@ class Pathfinding():
                 if wanted == 'isTarget':
                     cell[1][5] = change
 
-    def GetDist(startPos, targetPos):
+    def GetDist(self, startPos, targetPos):
         changeY = abs(startPos[1] - targetPos[1]) 
         changeX = abs(startPos[0] - targetPos[0])
         if changeX > changeY:
@@ -203,8 +205,6 @@ class Pathfinding():
         self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
         for sprite in self.pathSprites:
             self.localPathMap.append([sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]])
-            #print("pos:", sprite.pos)
-        #print("len:", len(pathSprites))
         self.FixEdges()
     
     def CleanPath(self):
@@ -223,12 +223,27 @@ class Pathfinding():
             if pos == cell.pos:
                 return cell
         return 'no cell found'
+
+    def FixEdges(self):
+        for i in self.localPathMap:
+            position = i[0]
+            if self.FindCellInfo(position, 'hasObstacle'):
+                horizontalNPos = [(position[0] + 1, position[1]), (position[0], position[1] + 1), (position[0] - 1, position[1]), (position[0], position[1] - 1)]
+                for pos in horizontalNPos:
+                    if self.FindCellInfo(pos, 'exists'):
+                        self.SetCellInfo(pos, 'nextToWall', True)
+    
+    def GetRectCellPos(self, rect):
+        # Gets the position of a cell colliding with the given rect
+        for cell in self.pathSprites:
+            if cell.rect.colliderect(rect):
+                return cell.pos
     
 def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup):
     # Needs to be used before pathfinding method
     # Block count needs to be array in form (horizontalCount, verticalCount)
-    verticalCount = blockCount[0]
-    horizontalCount = blockCount[1]
+    verticalCount = blockCount[1]
+    horizontalCount = blockCount[0]
     top = 0
     y = 0
     for row in range(verticalCount):
