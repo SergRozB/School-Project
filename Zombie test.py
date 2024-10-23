@@ -305,6 +305,10 @@ obstacles.add(obstacle)
 
 Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites)
 
+MapMaker.CreateMap(MapMaker.map, screen)
+for wall in MapMaker.wallList:
+    allSprites.add(wall)
+
 for _ in range(1):
     enemy = Enemy(random.randint(1, screenW-50), random.randint(1, screenH-50))
     allSprites.add(enemy)
@@ -321,10 +325,7 @@ background = pygame.Surface(screen.get_size())
 run = True
 
 pygame.time.set_timer(allowPathfinding, timeInterval)
-MapMaker.CreateMap(MapMaker.map, screen)
-for wall in MapMaker.wallList:
-    allSprites.add(wall)
-    
+
 while run:
     screen.fill(black)
     canPathfind = False
