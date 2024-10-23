@@ -1,6 +1,5 @@
 import pygame
 
-screen = pygame.display.set_mode((1000, 500))
 white = (255, 255, 255)
 map = """
          WWWWWWWWWWWWWWW
@@ -16,24 +15,18 @@ map = """
          WWWWWWWWWWWWWWW"""
 
 map = map.splitlines()
-for line in map:
-    print(line)
+wallList = []
+class Wall(pygame.sprite.Sprite):
+    def __init__(self, pos):
+        super().__init__()
+        self.image = pygame.image.load("SpriteImages\Tile1.png")
+        self.pos = pygame.math.Vector2(pos[0], pos[1])
+        self.hitboxRect = self.image.get_rect(center = self.pos)
+        self.rect = self.hitboxRect.copy()
 
-#tile = pygame.surface.Surface([10, 10])
-#tile.fill(white)
 tile = pygame.image.load("SpriteImages\Tile1.png")
 def CreateMap(map, screen):
     for y, line in enumerate(map):
         for x, character in enumerate(line):
             if character == "W":
-                screen.blit(tile, (x*32-100, y*32))
-
-loop = True
-while loop:
-    screen.fill((0, 0, 0))
-    CreateMap(map, screen)
-    pygame.display.update()
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            loop = False
-pygame.quit()
+                wallList.append(Wall((x*32-100, y*32)))
