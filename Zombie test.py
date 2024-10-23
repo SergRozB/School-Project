@@ -1,9 +1,7 @@
 import pygame
 import math
 import random
-import BinaryTree
-import PathfindingBlock
-import MapMaker
+#import MapMaker
 import Pathfinding
 
 pygame.init()
@@ -170,6 +168,7 @@ class Enemy(Player):
         self.rootNode = None
 
         self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
+        print("horizontalvert:", (horizontalCount, verticalCount))
 
     def RotateToTarget(self):
         x = self.hitboxRect.centerx
@@ -235,7 +234,7 @@ class Enemy(Player):
         else:
             self.target = self.pathFind.path[0]
             if self.hitboxRect.colliderect(self.pathFind.path[0].rect):
-                self.pathFind.path.remove(self.path[0]) 
+                self.pathFind.path.remove(self.pathFind.path[0]) 
                 self.target = self.pathFind.path[0]   
 
     def Update(self):
@@ -245,7 +244,7 @@ class Enemy(Player):
             self.pathFind.Pathfind(self.hitboxRect, player.hitboxRect)
             self.override = self.pathFind.override
 
-        if len(self.path) > 0:
+        if len(self.pathFind.path) > 0:
             self.FollowPath()
         self.RotateToTarget()
         self.Separate(0.05)
@@ -278,8 +277,8 @@ class Obstacle(pygame.sprite.Sprite):
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
 
-def GetDist(startPos, targetPos):
-        changeY = abs(startPos[1] - targetPos[1]) 
+    def GetDist(startPos, targetPos):
+        changeY = abs(startPos[1] - targetPos[1])
         changeX = abs(startPos[0] - targetPos[0])
         if changeX > changeY:
             dist = 14*(changeY) + 10*(abs(changeX - changeY))
