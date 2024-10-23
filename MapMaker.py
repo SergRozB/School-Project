@@ -23,6 +23,7 @@ class Wall(pygame.sprite.Sprite):
         self.pos = pygame.math.Vector2(pos[0], pos[1])
         self.hitboxRect = self.image.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
+        self.oldRect = self.rect
 
 tile = pygame.image.load("SpriteImages\Tile1.png")
 def CreateMap(map, screen):
