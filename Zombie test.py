@@ -1,7 +1,7 @@
 import pygame
 import math
 import random
-#import MapMaker
+import MapMaker
 import Pathfinding
 
 pygame.init()
@@ -321,11 +321,13 @@ background = pygame.Surface(screen.get_size())
 run = True
 
 pygame.time.set_timer(allowPathfinding, timeInterval)
-
+MapMaker.CreateMap(MapMaker.map, screen)
+for wall in MapMaker.wallList:
+    allSprites.add(wall)
+    
 while run:
     screen.fill(black)
     canPathfind = False
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
