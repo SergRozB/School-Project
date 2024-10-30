@@ -16,6 +16,7 @@ map = """
 
 map = map.splitlines()
 wallList = []
+
 class Wall(pygame.sprite.Sprite):
     def __init__(self, pos):
         super().__init__()
@@ -23,10 +24,10 @@ class Wall(pygame.sprite.Sprite):
         self.pos = pygame.math.Vector2(pos[0], pos[1])
         self.hitboxRect = self.image.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
-        self.oldRect = self.rect
+        self.oldRect = self.hitboxRect.copy()
 
 tile = pygame.image.load("SpriteImages\Tile1.png")
-def CreateMap(map, screen):
+def CreateMap(map):
     for y, line in enumerate(map):
         for x, character in enumerate(line):
             if character == "W":
