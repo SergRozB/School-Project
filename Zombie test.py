@@ -8,8 +8,15 @@ pygame.init()
 
 pygame.display.set_caption("Zombie Test")
 
-screenW = 800
-screenH = 600
+blockWidth = 40
+widthOfMap = 0
+for i in MapMaker.map[1]:
+    if i == "W":
+        widthOfMap += 1
+
+screenW = 32*widthOfMap
+screenH = 32*len(MapMaker.map)
+print("ScreenW:", widthOfMap, "|ScreenH:", len(MapMaker.map))
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -21,7 +28,6 @@ timeInterval = 500 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
-blockWidth = 40
 horizontalCount = math.ceil(screenW/blockWidth) + 5
 verticalCount = math.ceil(screenH/blockWidth) + 5
 
@@ -114,7 +120,8 @@ class Player(pygame.sprite.Sprite):
     
     def CheckCollision(self, direction):
         collisionSprites = pygame.sprite.spritecollide(self, self.localSprites, False)
-        for sprite in collisionSprites:
+        if collisionSprites:
+            sprite = collisionSprites[0]
             if direction == 'horizontal':
                 # If collision on the right
                 if self.hitboxRect.right >= sprite.hitboxRect.left and self.oldRect.right <= sprite.oldRect.left:
@@ -277,7 +284,7 @@ for wall in MapMaker.wallList:
     allSprites.add(wall)
 
 for _ in range(1):
-    enemy = Enemy(random.randint(1, screenW-50), random.randint(1, screenH-50))
+    enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
     allSprites.add(enemy)
     liveSprites.add(enemy)
     enemySprites.add(enemy)

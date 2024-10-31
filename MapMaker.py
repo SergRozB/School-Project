@@ -7,7 +7,7 @@ map = """
          W             W
          W             W
          W             W
-         W             W
+         W     www     W
          W             W
          W             W
          W             W
@@ -31,4 +31,4 @@ def CreateMap(map):
     for y, line in enumerate(map):
         for x, character in enumerate(line):
             if character == "W":
-                wallList.append(Wall((x*32-100, y*32)))
+                wallList.append(Wall((x*32, y*32)))
