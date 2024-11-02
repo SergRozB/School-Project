@@ -1,17 +1,22 @@
 import pygame
 
 white = (255, 255, 255)
-map = """WWWWWWWWWWWWWWW
-W             W
-W             W
-W             W
-W             W
-W       W     W
-W             W
-W             W
-W             W
-W             W
-WWWWWWWWWWWWWWW"""
+map = """WWWWWWWWWWWWWWWWWWWWWWWWWWW
+         W               W         W
+         W               W         W 
+         W               W         W    
+         W               W         W  
+         W       W       W         W 
+         W               W         W 
+         W                         W
+         W                         W   
+         W                W        W 
+         W                W        W
+         W                W        W
+         W                W        W
+         W                W        W
+         W                W        W
+         WWWWWWWWWWWWWWWWWWWWWWWWWWW"""
 
 map = map.splitlines()
 wallList = []
@@ -29,6 +34,10 @@ tile = pygame.image.load("SpriteImages\Tile1.png")
 def CreateMap(map):
     for y, line in enumerate(map):
         for x, character in enumerate(line):
-            if character == "W":
+            if y > 0:
+                if character == "W":
+                    #print("X:", x*32, "|Y:", y*32)
+                    wallList.append(Wall(((x-9)*32, (y)*32)))
+            elif character == "W":
                 #print("X:", x*32, "|Y:", y*32)
                 wallList.append(Wall((x*32, y*32)))

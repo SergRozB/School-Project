@@ -176,7 +176,7 @@ class Pathfinding():
             return "no pos"
         y = pos[1]
         x = pos[0]
-        for cell in range(self.verticalCount):
+        for i in range(self.verticalCount):
             cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
             if cell[0] == pos:
                 if wanted == 'g':
@@ -205,6 +205,7 @@ class Pathfinding():
         self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
         for sprite in self.pathSprites:
             self.localPathMap.append([sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]])
+        print("len path map:", len(self.localPathMap))
         self.FixEdges()
     
     def CleanPath(self):

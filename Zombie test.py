@@ -9,10 +9,9 @@ pygame.init()
 
 pygame.display.set_caption("Zombie Test")
 
-blockWidth = 40
+blockWidth = 15
 widthOfMap = 0
 for i in MapMaker.map[0]:
-    if i == "W":
         widthOfMap += 1
 
 screenW = 32*widthOfMap
@@ -46,7 +45,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = 100
  
         # Create the image of the player
-        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\TestSquare.png").convert_alpha(), 0, 1)
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\TestSquare.png").convert_alpha(), 0, 3)
         self.basePlayerImage = self.image
 
         # Get a rectangle object that shows where our image is
@@ -92,6 +91,7 @@ class Player(pygame.sprite.Sprite):
     def Move(self):
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
+
         self.pos.x += self.direction.x * self.speed * dt
         self.hitboxRect.x = self.pos.x
         self.CheckCollision('horizontal')
@@ -110,38 +110,38 @@ class Player(pygame.sprite.Sprite):
         self.Move()
         self.RotateToMouse()
     
-    def CreateLocalSprites(self, sprites):
-        self.localSprites = pygame.sprite.Group()
+    def CreateLocalRects(self, sprites):
+        self.localRects = {}
         for sprite in sprites:
             if sprite != self:
-                self.localSprites.add(sprite)
+                self.localRects[sprite] = sprite.hitboxRect
     
     def CheckCollision(self, direction):
-        collisionSprites = pygame.sprite.spritecollide(self, self.localSprites, False)
-        if collisionSprites:
+        collisionList = self.hitboxRect.collidedictall(self.localRects)
+        if len(collisionList) > 0:
             if direction == 'horizontal':
-                for sprite in collisionSprites:
+                for sprite, rect in collisionList:
                         # If collision on the right
-                        if self.hitboxRect.right >= sprite.hitboxRect.left and self.oldRect.right <= sprite.oldRect.left:
-                            self.hitboxRect.right = sprite.hitboxRect.left + 1
+                        if self.hitboxRect.right >= rect.left and self.oldRect.right <= sprite.oldRect.left:
+                            self.hitboxRect.right = rect.left
                             self.pos.x = self.hitboxRect.x
                         
                         # If collision on the left
-                        if self.hitboxRect.left <= sprite.hitboxRect.right and self.oldRect.left >= sprite.oldRect.right:
-                            print("hfuuf")
-                            self.hitboxRect.left = sprite.hitboxRect.right - 1
+                        if self.hitboxRect.left <= rect.right and self.oldRect.left >= sprite.oldRect.right:
+                            self.hitboxRect.left = rect.right 
                             self.pos.x = self.hitboxRect.x
 
             if direction == 'vertical':
-                for sprite in collisionSprites:
+                for sprite, rect in collisionList:
                     # If collision on the bottom
-                    if self.hitboxRect.bottom >= sprite.hitboxRect.top and self.oldRect.bottom <= sprite.oldRect.top:
-                        self.hitboxRect.bottom = sprite.hitboxRect.top - 1
+                    if self.hitboxRect.bottom >= rect.top and self.oldRect.bottom <= sprite.oldRect.top:
+                        self.hitboxRect.bottom = rect.top 
                         self.pos.y = self.hitboxRect.y
                     
+                    #print("self old right:", self.oldRect.right, "|other old left:", self.oldRect.left)
                     # If collision on the top
-                    if self.hitboxRect.top <= sprite.hitboxRect.bottom and self.oldRect.top >= sprite.oldRect.bottom:
-                        self.hitboxRect.top = sprite.hitboxRect.bottom + 1
+                    if self.hitboxRect.top <= rect.bottom and self.oldRect.top >= sprite.oldRect.bottom:
+                        self.hitboxRect.top = rect.bottom
                         self.pos.y = self.hitboxRect.y
 
 class Enemy(Player):
@@ -153,20 +153,20 @@ class Enemy(Player):
         self.pos = pygame.math.Vector2(x, y)
         self.direction = pygame.math.Vector2(0, 0)
         # Create the image of the player
-        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\goomba.png").convert_alpha(), 0, 0.25)
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\goomba.png").convert_alpha(), 0, 0.10)
         self.baseEnemyImage = self.image
 
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.baseEnemyImage.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
-        self.closeRect = pygame.Rect(50, 50, 50, 50)
+        self.closeRect = pygame.Rect(0, 0, self.hitboxRect.width*1.5, self.hitboxRect.height*1.5)
         # Get attributes for the height/width of the screen
         self.screenheight = pygame.display.get_surface().get_height()
         self.screenwidth = pygame.display.get_surface().get_width()
 
         # Velocity
-        self.speed = 120
+        self.speed = 60
 
         self.target = player
 
@@ -192,11 +192,11 @@ class Enemy(Player):
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
         self.rect.center = self.hitboxRect.center
     
-    def CreateLocalSprites(self, sprites):
-        self.localSprites = pygame.sprite.Group()
+    def CreateLocalRects(self, sprites):
+        self.localRects = {}
         for sprite in sprites:
-            if sprite.hitboxRect != self.hitboxRect and sprite not in enemySprites:
-                self.localSprites.add(sprite)
+            if sprite != self and sprite not in enemySprites:
+                self.localRects[sprite] = sprite.hitboxRect
 
     def FollowPath(self):
         # Removes a cell from the path list if collided with
@@ -219,10 +219,10 @@ class Enemy(Player):
         if len(self.pathFind.path) > 0:
             self.FollowPath()
         self.RotateToTarget()
-        self.Separate(0.05)
+        self.Separate(2)
         self.Move()
         self.closeRect.center = self.hitboxRect.center
-        pygame.draw.rect(screen, white, self.closeRect)
+        #pygame.draw.rect(screen, white, self.closeRect)
     
     def Separate(self, factor):
         enemyClose = enemyRects[self.closeRect.collidelist(enemyRects)]
@@ -230,32 +230,25 @@ class Enemy(Player):
         y = self.pos.y - enemyClose.y
         self.direction.x += x*factor
         self.direction.y += y*factor
+
+class RangedWeapon():
+    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed):
+        self.damage = damage
+        self.fireRate = fireRate
+        self.spread = spread
+        self.magazineCap = magazineCap
+        self.totalAmmo = totalAmmo
+        self.reloadSpeed = reloadSpeed
+        self.currentAmmo = magazineCap
     
-class Obstacle(pygame.sprite.Sprite):
-    # Obstacle sprite, can't move
-    def __init__(self, width, height, x, y):
-        # Call the parent class (Sprite) constructor
-        super().__init__()
+    def Use(self):
+        self.Shoot()
+    
+    def Shoot(self):
+        pass
 
-        self.pos = pygame.math.Vector2(x, y)
-
-        self.width = width
-        self.height = height
-
-        self.image = pygame.Surface([width, height])
-        self.image.fill(white)
-        self.hitboxRect = self.image.get_rect(center = self.pos)
-        self.rect = self.hitboxRect.copy()
-        self.oldRect = self.hitboxRect.copy()
-
-    def GetDist(startPos, targetPos):
-        changeY = abs(startPos[1] - targetPos[1])
-        changeX = abs(startPos[0] - targetPos[0])
-        if changeX > changeY:
-            dist = 14*(changeY) + 10*(abs(changeX - changeY))
-            return dist
-        dist = 14*(changeX) + 10*(abs(changeY - changeX))
-        return dist
+    def Reload(self):
+        pass
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
 liveSprites = pygame.sprite.Group() # Group of all 'living' sprites that need updating
@@ -267,29 +260,16 @@ enemySprites = pygame.sprite.Group() # Group of enemy sprites.
 enemyRects = [] # List of enemy rects
 
 player = Player()
-obstacle = Obstacle(20, 20, 0, 0)
 
 allSprites.add(player)
-allSprites.add(obstacle)
 liveSprites.add(player)
-obstacles.add(obstacle)
-
-Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites)
 
 MapMaker.CreateMap(MapMaker.map)
 for wall in MapMaker.wallList:
     allSprites.add(wall)
+    obstacles.add(wall)
 
-for _ in range(0):
-    enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
-    allSprites.add(enemy)
-    liveSprites.add(enemy)
-    enemySprites.add(enemy)
-    enemyRects.append(enemy.hitboxRect)
-    enemy.CreateLocalSprites(allSprites)
-    enemy.pathFind.CreateLocalPathMap()
-
-player.CreateLocalSprites(allSprites)
+player.CreateLocalRects(allSprites)
 
 background = pygame.Surface(screen.get_size())
 
@@ -298,6 +278,17 @@ run = True
 pygame.time.set_timer(allowPathfinding, timeInterval)
 
 lastTime = time.time()
+
+Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites)
+
+for _ in range(10):
+    enemy = Enemy(random.randint(32, screenW-32), random.randint(32, screenH-32))
+    allSprites.add(enemy)
+    liveSprites.add(enemy)
+    enemySprites.add(enemy)
+    enemyRects.append(enemy.hitboxRect)
+    enemy.CreateLocalRects(allSprites)
+    enemy.pathFind.CreateLocalPathMap()
 
 while run:
     dt = time.time() - lastTime
@@ -315,11 +306,11 @@ while run:
     
     for sprite in liveSprites:
         sprite.Update()
-        pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+        #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
     
     for sprite in allSprites:
         screen.blit(sprite.image, sprite.rect)
-        pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+        #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
 
     #for sprite in showPathSprites:
             #screen.blit(sprite.image, sprite.rect)
