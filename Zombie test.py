@@ -3,6 +3,7 @@ import math
 import random
 import MapMaker
 import Pathfinding
+import time
 
 pygame.init()
 
@@ -10,7 +11,7 @@ pygame.display.set_caption("Zombie Test")
 
 blockWidth = 40
 widthOfMap = 0
-for i in MapMaker.map[1]:
+for i in MapMaker.map[0]:
     if i == "W":
         widthOfMap += 1
 
@@ -31,6 +32,8 @@ allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when p
 horizontalCount = math.ceil(screenW/blockWidth) + 5
 verticalCount = math.ceil(screenH/blockWidth) + 5
 
+dt = 0
+
 class Player(pygame.sprite.Sprite):
     # Constructor. 
     def __init__(self):
@@ -40,7 +43,7 @@ class Player(pygame.sprite.Sprite):
         self.pos = pygame.math.Vector2(100, 100)
         self.prevPos = self.pos
         self.direction = pygame.math.Vector2(0, 0)
-        self.speed = 2
+        self.speed = 100
  
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\TestSquare.png").convert_alpha(), 0, 1)
@@ -53,7 +56,7 @@ class Player(pygame.sprite.Sprite):
  
         # Get attributes for the height/width of the screen
         self.screenheight = pygame.display.get_surface().get_height()
-        self.screenwidth = pygame.display.get_surface().get_width()     
+        self.screenwidth = pygame.display.get_surface().get_width() 
 
     def CheckControls(self):
         keys = pygame.key.get_pressed()
@@ -75,8 +78,7 @@ class Player(pygame.sprite.Sprite):
         if self.direction.x != 0 and self.direction.y != 0:
             self.direction.x /= math.sqrt(self.speed)
             self.direction.y /= math.sqrt(self.speed)
-        
-
+    
     def RotateToMouse(self):
         x = self.hitboxRect.centerx
         y = self.hitboxRect.centery
@@ -90,13 +92,12 @@ class Player(pygame.sprite.Sprite):
     def Move(self):
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
-
-        self.pos.x += self.direction.x * self.speed
-        self.hitboxRect.x = round(self.pos.x)
+        self.pos.x += self.direction.x * self.speed * dt
+        self.hitboxRect.x = self.pos.x
         self.CheckCollision('horizontal')
 
-        self.pos.y += self.direction.y * self.speed
-        self.hitboxRect.y = round(self.pos.y)
+        self.pos.y += self.direction.y * self.speed * dt
+        self.hitboxRect.y = self.pos.y
         self.CheckCollision('vertical')
 
         self.rect.center = self.hitboxRect.center
@@ -109,9 +110,6 @@ class Player(pygame.sprite.Sprite):
         self.Move()
         self.RotateToMouse()
     
-    def GetVelocity(self):
-        return [self.direction.x, self.direction.y]
-    
     def CreateLocalSprites(self, sprites):
         self.localSprites = pygame.sprite.Group()
         for sprite in sprites:
@@ -121,31 +119,30 @@ class Player(pygame.sprite.Sprite):
     def CheckCollision(self, direction):
         collisionSprites = pygame.sprite.spritecollide(self, self.localSprites, False)
         if collisionSprites:
-            sprite = collisionSprites[0]
             if direction == 'horizontal':
-                # If collision on the right
-                if self.hitboxRect.right >= sprite.hitboxRect.left and self.oldRect.right <= sprite.oldRect.left:
-                    self.hitboxRect.right = sprite.hitboxRect.left
-                    self.pos.x = self.hitboxRect.x
-                
-                # If collision on the left
-                if self.hitboxRect.left <= sprite.hitboxRect.right and self.oldRect.left >= sprite.oldRect.right:
-                    self.hitboxRect.left = sprite.hitboxRect.right
-                    self.pos.x = self.hitboxRect.x
+                for sprite in collisionSprites:
+                        # If collision on the right
+                        if self.hitboxRect.right >= sprite.hitboxRect.left and self.oldRect.right <= sprite.oldRect.left:
+                            self.hitboxRect.right = sprite.hitboxRect.left + 1
+                            self.pos.x = self.hitboxRect.x
+                        
+                        # If collision on the left
+                        if self.hitboxRect.left <= sprite.hitboxRect.right and self.oldRect.left >= sprite.oldRect.right:
+                            print("hfuuf")
+                            self.hitboxRect.left = sprite.hitboxRect.right - 1
+                            self.pos.x = self.hitboxRect.x
 
             if direction == 'vertical':
-                # If collision on the top
-                if self.hitboxRect.bottom >= sprite.hitboxRect.top and self.oldRect.bottom <= sprite.oldRect.top:
-                    self.hitboxRect.bottom = sprite.hitboxRect.top
-                    self.pos.y = self.hitboxRect.y
-                
-                # If collision on the bottom
-                if self.hitboxRect.top <= sprite.hitboxRect.bottom and self.oldRect.top >= sprite.oldRect.bottom:
-                    self.hitboxRect.top = sprite.hitboxRect.bottom
-                    self.pos.y = self.hitboxRect.y
-
-    def Test(self):
-        print("test") 
+                for sprite in collisionSprites:
+                    # If collision on the bottom
+                    if self.hitboxRect.bottom >= sprite.hitboxRect.top and self.oldRect.bottom <= sprite.oldRect.top:
+                        self.hitboxRect.bottom = sprite.hitboxRect.top - 1
+                        self.pos.y = self.hitboxRect.y
+                    
+                    # If collision on the top
+                    if self.hitboxRect.top <= sprite.hitboxRect.bottom and self.oldRect.top >= sprite.oldRect.bottom:
+                        self.hitboxRect.top = sprite.hitboxRect.bottom + 1
+                        self.pos.y = self.hitboxRect.y
 
 class Enemy(Player):
     # Constructor. 
@@ -169,7 +166,7 @@ class Enemy(Player):
         self.screenwidth = pygame.display.get_surface().get_width()
 
         # Velocity
-        self.speed = 1.2
+        self.speed = 120
 
         self.target = player
 
@@ -270,7 +267,7 @@ enemySprites = pygame.sprite.Group() # Group of enemy sprites.
 enemyRects = [] # List of enemy rects
 
 player = Player()
-obstacle = Obstacle(20, 20, 300, 300)
+obstacle = Obstacle(20, 20, 0, 0)
 
 allSprites.add(player)
 allSprites.add(obstacle)
@@ -283,7 +280,7 @@ MapMaker.CreateMap(MapMaker.map)
 for wall in MapMaker.wallList:
     allSprites.add(wall)
 
-for _ in range(1):
+for _ in range(0):
     enemy = Enemy(random.randint(1, screenW), random.randint(1, screenH))
     allSprites.add(enemy)
     liveSprites.add(enemy)
@@ -300,7 +297,12 @@ run = True
 
 pygame.time.set_timer(allowPathfinding, timeInterval)
 
+lastTime = time.time()
+
 while run:
+    dt = time.time() - lastTime
+    lastTime = time.time()
+
     screen.fill(black)
     canPathfind = False
     for event in pygame.event.get():

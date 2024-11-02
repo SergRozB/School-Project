@@ -1,18 +1,17 @@
 import pygame
 
 white = (255, 255, 255)
-map = """
-         WWWWWWWWWWWWWWW
-         W             W
-         W             W
-         W             W
-         W             W
-         W     www     W
-         W             W
-         W             W
-         W             W
-         W             W
-         WWWWWWWWWWWWWWW"""
+map = """WWWWWWWWWWWWWWW
+W             W
+W             W
+W             W
+W             W
+W       W     W
+W             W
+W             W
+W             W
+W             W
+WWWWWWWWWWWWWWW"""
 
 map = map.splitlines()
 wallList = []
@@ -22,7 +21,7 @@ class Wall(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.image.load("SpriteImages\Tile1.png")
         self.pos = pygame.math.Vector2(pos[0], pos[1])
-        self.hitboxRect = self.image.get_rect(center = self.pos)
+        self.hitboxRect = self.image.get_rect(topleft = self.pos)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
 
@@ -31,4 +30,5 @@ def CreateMap(map):
     for y, line in enumerate(map):
         for x, character in enumerate(line):
             if character == "W":
+                #print("X:", x*32, "|Y:", y*32)
                 wallList.append(Wall((x*32, y*32)))
