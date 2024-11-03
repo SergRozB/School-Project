@@ -58,39 +58,41 @@ class MoveObject(pygame.sprite.Sprite):
                         # If collision on the right
                         if self.hitboxRect.right >= rect.left and self.oldRect.right <= sprite.oldRect.left:
                             self.hitboxRect.right = rect.left
-                            self.pos.x = self.hitboxRect.x
+                            self.pos.x = self.hitboxRect.centerx
                         
                         # If collision on the left
                         if self.hitboxRect.left <= rect.right and self.oldRect.left >= sprite.oldRect.right:
                             self.hitboxRect.left = rect.right 
-                            self.pos.x = self.hitboxRect.x
+                            self.pos.x = self.hitboxRect.centerx
 
             if direction == 'vertical':
                 for sprite, rect in collisionList:
                     # If collision on the bottom
                     if self.hitboxRect.bottom >= rect.top and self.oldRect.bottom <= sprite.oldRect.top:
                         self.hitboxRect.bottom = rect.top 
-                        self.pos.y = self.hitboxRect.y
+                        self.pos.y = self.hitboxRect.centery
                     
                     #print("self old right:", self.oldRect.right, "|other old left:", self.oldRect.left)
                     # If collision on the top
                     if self.hitboxRect.top <= rect.bottom and self.oldRect.top >= sprite.oldRect.bottom:
                         self.hitboxRect.top = rect.bottom
-                        self.pos.y = self.hitboxRect.y
+                        self.pos.y = self.hitboxRect.centery
         else:
             self.isColliding = False
 
-    def Move(self):
+    def Move(self, check):
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
 
         self.pos.x += self.direction.x * self.speed * dt
-        self.hitboxRect.x = self.pos.x
-        self.CheckCollision('horizontal')
+        self.hitboxRect.centerx = self.pos.x
+        if check:
+            self.CheckCollision('horizontal')
 
         self.pos.y += self.direction.y * self.speed * dt
-        self.hitboxRect.y = self.pos.y
-        self.CheckCollision('vertical')
+        self.hitboxRect.centery = self.pos.y
+        if check:
+            self.CheckCollision('vertical')
 
         self.rect.center = self.hitboxRect.center
     
@@ -103,7 +105,7 @@ class MoveObject(pygame.sprite.Sprite):
     def Update(self):
         """ Update the position """
         self.oldRect = self.hitboxRect.copy()
-        self.Move()
+        self.Move(True)
 
 class Player(MoveObject):
     # Constructor. 
@@ -119,15 +121,21 @@ class Player(MoveObject):
         self.hitboxRect = self.basePlayerImage.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
- 
-        # Get attributes for the height/width of the screen
-        self.screenheight = pygame.display.get_surface().get_height()
-        self.screenwidth = pygame.display.get_surface().get_width() 
+
+        self.inventory = []
+
+    def UseItem(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.MOUSEBUTTONDOWN]:
+            AutoRifle.Use()
 
     def CheckControls(self):
         keys = pygame.key.get_pressed()
         self.direction.x = 0
         self.direction.y = 0
+
+        if keys[pygame.K_SPACE]:
+            AutoRifle.Use()
     
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.direction.x = -1*self.speed
@@ -151,6 +159,8 @@ class Player(MoveObject):
         Mx, My = pygame.mouse.get_pos()
         xDist = Mx - x
         yDist = My - y
+        self.lookDirection = pygame.math.Vector2(xDist, yDist)
+        self.lookDirection = self.lookDirection.normalize()
         self.angle = math.degrees(math.atan2(yDist, xDist))
         self.image = pygame.transform.rotate(self.basePlayerImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
@@ -160,7 +170,8 @@ class Player(MoveObject):
         self.oldRect = self.hitboxRect.copy()
 
         self.CheckControls()
-        self.Move()
+        self.UseItem()
+        self.Move(True)
         self.RotateToMouse()
     
 
@@ -191,6 +202,12 @@ class Enemy(MoveObject):
 
         self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
         print("horizontalvert:", (horizontalCount, verticalCount))
+
+        self.health = 30
+    
+    def CheckDeath(self):
+        if self.health <= 0:
+            self.kill()
 
     def RotateToTarget(self):
         x = self.hitboxRect.centerx
@@ -226,7 +243,7 @@ class Enemy(MoveObject):
     def Update(self):
         self.oldRect = self.hitboxRect.copy()
         """ Update the position of the enemy """
-
+        self.CheckDeath()
         if canPathfind:
             self.pathFind.Pathfind(self.hitboxRect, player.hitboxRect)
             self.override = self.pathFind.override
@@ -235,7 +252,7 @@ class Enemy(MoveObject):
             self.FollowPath()
         self.RotateToTarget()
         self.Separate(2)
-        self.Move()
+        self.Move(True)
         self.closeRect.center = self.hitboxRect.center
         #pygame.draw.rect(screen, white, self.closeRect)
     
@@ -255,15 +272,18 @@ class RangedWeapon():
         self.totalAmmo = totalAmmo
         self.reloadSpeed = reloadSpeed
         self.currentAmmo = magazineCap
+        self.lastFired = 0
     
     def Use(self):
-        lastFired = time.time()
-        timeSince = time.time() - lastFired
+        timeSince = time.time() - self.lastFired
+        print("current ammo:", self.currentAmmo)
         if timeSince >= self.fireRate and self.currentAmmo > 0:
+            print("FIRED!")
+            self.lastFired = time.time()
             self.Shoot()
             self.currentAmmo -= 1
 
-        elif self.currentAmmo > 0 and self.totalAmmo > 0:
+        elif self.currentAmmo == 0 and self.totalAmmo > 0:
             if self.totalAmmo >= self.magazineCap:
                 self.currentAmmo = self.magazineCap
                 self.totalAmmo -= self.magazineCap
@@ -273,39 +293,47 @@ class RangedWeapon():
                 self.totalAmmo = 0
     
     def Shoot(self):
-        Bullet(500, )
+        Bullet(player.pos, 100, self.damage, player.lookDirection)
 
 class Bullet(MoveObject):
     def __init__(self, startingPos, speed, damage, direction):
         super().__init__(startingPos, speed)
 
         # Create the image of the bullet
-        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages/bullet").convert_alpha(), 0, 1)
-
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages/bullet.png").convert_alpha(), player.angle-90, 1)
+        print("self pos:", self.pos, "| starting pos:", startingPos)
         # Get a rectangle object that shows where our image is
-        self.hitboxRect = self.image.get_rect(center = self.pos)
+        self.hitboxRect = self.image.get_rect()
+        self.rect = self.hitboxRect.copy()
+        self.hitboxRect.height = self.hitboxRect.height * 0.5
+        self.hitboxRect.width = self.hitboxRect.width * 0.5
+        self.hitboxRect.center = self.pos
         self.oldRect = self.hitboxRect.copy()
         self.direction = direction
         self.damage = damage
         allSprites.add(self)
         liveSprites.add(self)
         bullets.add(self)
+        self.CreateLocalRects(allSprites)
 
     def DealDamage(self, sprite):
         sprite.health -= self.damage
     
     def CheckCollision(self):
-        spriteCollidedWith = self.hitboxRect.collidedict(self.localRects)[0]
-        if spriteCollidedWith in liveSprites and spriteCollidedWith not in bullets:
-            self.DealDamage(spriteCollidedWith)
-            self.kill()
-        
-        else:
-            self.kill()
+        collidedWith = self.hitboxRect.collidedict(self.localRects)
+        if collidedWith:
+            spriteCollidedWith = collidedWith[0]
+            if spriteCollidedWith != player and spriteCollidedWith not in bullets and spriteCollidedWith in allSprites:
+                print("sprite name:", type(spriteCollidedWith).__name__)
+                if spriteCollidedWith in liveSprites:
+                    self.DealDamage(spriteCollidedWith)
+                    self.kill()
+                else:
+                    self.kill()
     
     def Update(self):
         self.oldRect = self.hitboxRect.copy()
-        self.Move()
+        self.Move(False)
         self.CheckCollision()
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
@@ -341,7 +369,9 @@ lastTime = time.time()
 
 Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites)
 
-for _ in range(10):
+AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
+
+for _ in range(0):
     enemy = Enemy(random.randint(32, screenW-32), random.randint(32, screenH-32))
     allSprites.add(enemy)
     liveSprites.add(enemy)
@@ -366,7 +396,7 @@ while run:
     
     for sprite in liveSprites:
         sprite.Update()
-        #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+        pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
     
     for sprite in allSprites:
         screen.blit(sprite.image, sprite.rect)

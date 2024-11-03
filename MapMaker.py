@@ -30,7 +30,6 @@ class Wall(pygame.sprite.Sprite):
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
 
-tile = pygame.image.load("SpriteImages\Tile1.png")
 def CreateMap(map):
     for y, line in enumerate(map):
         for x, character in enumerate(line):
