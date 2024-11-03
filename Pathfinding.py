@@ -13,6 +13,11 @@ class Pathfinding():
         self.verticalCount = blockCount[1]
         self.showSpriteGroup = showSpriteGroup
         self.pathSprites = pathSprites
+        self.pathRectList = []
+        self.pathList = []
+        for cell in self.pathSprites:
+            self.pathRectList.append(cell.rect)
+            self.pathList.append(cell)
         self.override = False
         self.path = []
 
@@ -82,26 +87,12 @@ class Pathfinding():
 
             for cellPos in cellsToSearch:
                 self.rootNode.Insert(self.FindCellInfo(cellPos, 'f'), cellPos)
-            lowest = self.rootNode.FindLowest()
-            if lowest is None:
-                self.rootNode.InorderTraversal()
-            lowestF = lowest[0]
-            lowestCellPos = lowest[1]
+            bestCellPos = self.rootNode.FindLowest()[1]
 
-            if lowestF < bestF or (lowestF == bestF and self.FindCellInfo(lowestCellPos, 'h') < self.FindCellInfo(bestCellPos, 'h')):
-                bestCellPos = lowestCellPos
             processedCells.append(bestCellPos)
             cellsToSearch.remove(bestCellPos)
             neighbours = self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)
             if neighbours == -1:
-                # The below colours the processed cells and cells to search. Doesn't work currently
-                #for cellPos in processedCells:
-                    #if cellPos != startCellPos:
-                        #cell.image.fill(dark_green)
-                #for cell in cellsToSearch:
-                    #if cell != startCell:
-                        #cell.image.fill(light_blue)
-
                 self.CompilePath(startCellPos, endCellPos)
                 hasCompleted = True
             if len(cellsToSearch) == 0:
@@ -236,8 +227,10 @@ class Pathfinding():
     
     def GetRectCellPos(self, rect):
         # Gets the position of a cell colliding with the given rect
-        for cell in self.pathSprites:
-            if cell.rect.colliderect(rect):
+        indices = rect.collidelistall(self.pathRectList)
+        for i in indices:
+            cell = self.pathList[i]
+            if not cell.hasObstacle:
                 return cell.pos
     
 def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup):

@@ -4,19 +4,23 @@ import random
 import MapMaker
 import Pathfinding
 import time
+import Camera
 
 pygame.init()
 
 pygame.display.set_caption("Zombie Test")
 
-blockWidth = 15
+zoomLevel = Camera.zoomLevel
+
+blockWidth = 15 * zoomLevel
 widthOfMap = 0
 for i in MapMaker.map[0]:
         widthOfMap += 1
 
-screenW = 32*widthOfMap
-screenH = 32*len(MapMaker.map)
-print("ScreenW:", widthOfMap, "|ScreenH:", len(MapMaker.map))
+mapW = 32*widthOfMap
+mapH = 32*len(MapMaker.map)
+screenW = 1000
+screenH = 600
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -28,8 +32,8 @@ timeInterval = 500 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
-horizontalCount = math.ceil(screenW/blockWidth) + 5
-verticalCount = math.ceil(screenH/blockWidth) + 5
+horizontalCount = math.ceil(mapW/blockWidth) + 5
+verticalCount = math.ceil(mapH/blockWidth) + 5
 
 dt = 0
 
@@ -114,7 +118,7 @@ class Player(MoveObject):
         super().__init__((100, 100), 100)
  
         # Create the image of the player
-        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\TestSquare.png").convert_alpha(), 0, 3)
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
         self.basePlayerImage = self.image
 
         # Get a rectangle object that shows where our image is
@@ -135,7 +139,7 @@ class Player(MoveObject):
         self.direction.y = 0
 
         if keys[pygame.K_SPACE]:
-            AutoRifle.Use()
+            AutoRifle.Use(player)
     
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.direction.x = -1*self.speed
@@ -154,14 +158,16 @@ class Player(MoveObject):
             self.direction.y /= math.sqrt(self.speed)
     
     def RotateToMouse(self):
-        x = self.hitboxRect.centerx
-        y = self.hitboxRect.centery
+        x = self.hitboxRect.centerx 
+        y = self.hitboxRect.centery 
         Mx, My = pygame.mouse.get_pos()
-        xDist = Mx - x
-        yDist = My - y
+        Mx = Mx / zoomLevel
+        My = My / zoomLevel
+        xDist = (Mx - x) + camera.offset.x 
+        yDist = (My - y) + camera.offset.y 
         self.lookDirection = pygame.math.Vector2(xDist, yDist)
         self.lookDirection = self.lookDirection.normalize()
-        self.angle = math.degrees(math.atan2(yDist, xDist))
+        self.angle = math.degrees(math.atan2(yDist, xDist)) + 90
         self.image = pygame.transform.rotate(self.basePlayerImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
         
@@ -210,10 +216,11 @@ class Enemy(MoveObject):
             self.kill()
 
     def RotateToTarget(self):
-        x = self.hitboxRect.centerx
-        y = self.hitboxRect.centery
+        x = (self.hitboxRect.centerx - camera.offset.x) * zoomLevel
+        y = (self.hitboxRect.centery - camera.offset.y) * zoomLevel
         Tx, Ty = self.target.rect.center
-        #print("tx ty:", Tx, Ty)
+        Tx = (Tx - camera.offset.x) * zoomLevel
+        Ty = (Ty - camera.offset.y) * zoomLevel
         xDist = Tx - x
         yDist = Ty - y
         self.angle = math.degrees(math.atan2(yDist, xDist))
@@ -274,13 +281,13 @@ class RangedWeapon():
         self.currentAmmo = magazineCap
         self.lastFired = 0
     
-    def Use(self):
+    def Use(self, user):
         timeSince = time.time() - self.lastFired
         print("current ammo:", self.currentAmmo)
         if timeSince >= self.fireRate and self.currentAmmo > 0:
             print("FIRED!")
             self.lastFired = time.time()
-            self.Shoot()
+            self.Shoot(user)
             self.currentAmmo -= 1
 
         elif self.currentAmmo == 0 and self.totalAmmo > 0:
@@ -292,19 +299,21 @@ class RangedWeapon():
                 self.currentAmmo = self.totalAmmo
                 self.totalAmmo = 0
     
-    def Shoot(self):
-        Bullet(player.pos, 100, self.damage, player.lookDirection)
+    def Shoot(self, user):
+        Bullet(user.pos, 800, self.damage, user.lookDirection)
 
 class Bullet(MoveObject):
     def __init__(self, startingPos, speed, damage, direction):
         super().__init__(startingPos, speed)
 
         # Create the image of the bullet
-        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages/bullet.png").convert_alpha(), player.angle-90, 1)
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages/bullet.png").convert_alpha(), 0, 1)
+        self.baseImage = self.image.copy()
         print("self pos:", self.pos, "| starting pos:", startingPos)
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.image.get_rect()
-        self.rect = self.hitboxRect.copy()
+        self.image = pygame.transform.rotate(self.baseImage, self.GetAngle())
+        self.rect = self.image.get_rect(center = self.hitboxRect.center)
         self.hitboxRect.height = self.hitboxRect.height * 0.5
         self.hitboxRect.width = self.hitboxRect.width * 0.5
         self.hitboxRect.center = self.pos
@@ -315,6 +324,17 @@ class Bullet(MoveObject):
         liveSprites.add(self)
         bullets.add(self)
         self.CreateLocalRects(allSprites)
+
+    def GetAngle(self):
+        # Angle still slightly off....
+        x = (self.pos.x - camera.offset.x) * zoomLevel
+        y = (self.pos.y - camera.offset.y) * zoomLevel
+        Mx, My = pygame.mouse.get_pos()
+        Mx = Mx  
+        My = My 
+        xDist = Mx - x 
+        yDist = My - y 
+        return -math.degrees(math.atan2(yDist, xDist)) - 90
 
     def DealDamage(self, sprite):
         sprite.health -= self.damage
@@ -335,6 +355,8 @@ class Bullet(MoveObject):
         self.oldRect = self.hitboxRect.copy()
         self.Move(False)
         self.CheckCollision()
+
+#################### SETUP ####################
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
 liveSprites = pygame.sprite.Group() # Group of all 'living' sprites that need updating
@@ -371,14 +393,18 @@ Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obst
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
 
-for _ in range(0):
-    enemy = Enemy(random.randint(32, screenW-32), random.randint(32, screenH-32))
+for _ in range(30):
+    enemy = Enemy(random.randint(32, mapW-32), random.randint(32, mapH-32))
     allSprites.add(enemy)
     liveSprites.add(enemy)
     enemySprites.add(enemy)
     enemyRects.append(enemy.hitboxRect)
     enemy.CreateLocalRects(allSprites)
     enemy.pathFind.CreateLocalPathMap()
+
+camera = Camera.Camera(player, (screenW, screenH))
+
+#################### GAME LOOP ####################
 
 while run:
     dt = time.time() - lastTime
@@ -393,19 +419,30 @@ while run:
         if event.type == allowPathfinding:
             canPathfind = True
             showPathSprites.empty()
-    
+
     for sprite in liveSprites:
         sprite.Update()
-        pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+        #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
     
+    camera.scroll()
     for sprite in allSprites:
-        screen.blit(sprite.image, sprite.rect)
+        drawnRect = sprite.rect.copy()
+        drawnRect.width = sprite.rect.width * zoomLevel
+        drawnRect.height = sprite.rect.height * zoomLevel
+        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
 
-    #for sprite in showPathSprites:
-            #screen.blit(sprite.image, sprite.rect)
-    #for sprite in pathSprites:
-        #screen.blit(sprite.image, sprite.rect)
+    for sprite in showPathSprites:
+        drawnRect = sprite.rect.copy()
+        drawnRect.width = sprite.rect.width * zoomLevel
+        drawnRect.height = sprite.rect.height * zoomLevel
+        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+        
+    """for sprite in pathSprites:
+        drawnRect = sprite.rect.copy()
+        drawnRect.width = sprite.rect.width * zoomLevel
+        drawnRect.height = sprite.rect.height * zoomLevel
+        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))"""
     
     pygame.display.update()
     clock.tick(60)
