@@ -15,9 +15,9 @@ zoomLevel = Camera.zoomLevel
 blockWidth = 15 
 widthOfMap = 0
 for i in MapMaker.map[0]:
-        widthOfMap += 1
+    widthOfMap += 1
 
-topSpawnPoint = (50, 50)
+topSpawnPoint = (100, 50)
 top = 0
 
 mapW = 32*widthOfMap
@@ -28,6 +28,7 @@ screenH = 600
 white = (255, 255, 255)
 black = (0, 0, 0)
 red = (255, 0, 0)
+green = (0, 255, 0)
 screen = pygame.display.set_mode([screenW, screenH])
 clock = pygame.time.Clock()
 
@@ -116,9 +117,9 @@ class MoveObject(pygame.sprite.Sprite):
 
 class Player(MoveObject):
     # Constructor. 
-    def __init__(self):
+    def __init__(self, startingPosition):
         # Call the parent class (Sprite) constructor
-        super().__init__((100, 100), 100)
+        super().__init__(startingPosition, 200)
  
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
@@ -131,9 +132,13 @@ class Player(MoveObject):
 
         self.lookDirection = 0
         self.inventory = []
+        self.currentItem = AutoRifle
+
+        self.isShooting = False
 
     def UseItem(self):
-        AutoRifle.Use(self)
+        if self.currentItem.isGun and self.isShooting:
+            self.currentItem.Use(self)
 
     def CheckControls(self):
         keys = pygame.key.get_pressed()
@@ -177,16 +182,16 @@ class Player(MoveObject):
         self.CheckControls()
         self.Move(True)
         self.RotateToMouse()
-    
+        self.UseItem()
 
 class Enemy(MoveObject):
     # Constructor. 
     def __init__(self, x, y):
         # Call the parent class (Move Object) constructor
-        super().__init__((x,y), 60)
+        super().__init__((x,y), 200)
 
         # Create the image of the enemy
-        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\goomba.png").convert_alpha(), 0, 0.10)
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\zombie.png").convert_alpha(), 0, 1)
         self.baseEnemyImage = self.image
 
         # Get a rectangle object that shows where our image is
@@ -205,7 +210,6 @@ class Enemy(MoveObject):
         self.rootNode = None
 
         self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
-        print("horizontalvert:", (horizontalCount, verticalCount))
 
         self.health = 30
     
@@ -256,7 +260,7 @@ class Enemy(MoveObject):
         if len(self.pathFind.path) > 0:
             self.FollowPath()
         self.RotateToTarget()
-        self.Separate(2)
+        self.Separate(10)
         self.Move(True)
         self.closeRect.center = self.hitboxRect.center
         #pygame.draw.rect(screen, white, self.closeRect)
@@ -278,6 +282,7 @@ class RangedWeapon():
         self.reloadSpeed = reloadSpeed
         self.currentAmmo = magazineCap
         self.lastFired = 0
+        self.isGun = True
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
@@ -354,7 +359,15 @@ class Bullet(MoveObject):
         self.Move(False)
         self.CheckCollision()
 
-#################### SETUP ####################
+class EnemySpawnArea(pygame.sprite.Sprite):
+    def __init__(self, pos, dimensions):
+        super().__init__()
+        self.image = pygame.Surface(dimensions)
+        self.image.fill(green)
+        self.pos = pygame.math.Vector2(pos[0], pos[1])
+        self.rect = self.image.get_rect(topleft = self.pos)
+
+#################### CREATE GROUPS/LISTS ####################
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
 liveSprites = pygame.sprite.Group() # Group of all 'living' sprites that need updating
@@ -364,13 +377,20 @@ pathSprites = pygame.sprite.Group() # Group of sprites representing pathfinding 
 showPathSprites = pygame.sprite.Group()
 enemySprites = pygame.sprite.Group() # Group of enemy sprites.
 bullets = pygame.sprite.Group() # Group of bullet sprites to check if bullet colliding with other bullet
+noCollisionSprites = pygame.sprite.Group()
 enemyRects = [] # List of enemy rects
 
-player = Player()
+#################### CREATE OBJECTS ####################
+
+AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
+player = Player((200, 200))
+enemySpawn = EnemySpawnArea((32, 32), (25*32, 3*32))
+
+#################### SETUP ####################
 
 allSprites.add(player)
+noCollisionSprites.add(enemySpawn)
 liveSprites.add(player)
-
 
 MapMaker.CreateMap(MapMaker.map)
 for wall in MapMaker.wallList:
@@ -389,18 +409,21 @@ lastTime = time.time()
 print("top:", top)
 Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top)
 
-AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
+camera = Camera.Camera(player, (screenW, screenH))
 
-for _ in range(5):
-    enemy = Enemy(topSpawnPoint[0], topSpawnPoint[1])
+#################### SPAWN ZOMBIES ####################
+
+for _ in range(15):
+    borderOffsetX = 16
+    borderOffsetY = 16
+    print("BROL:", enemySpawn.rect.left, "| BROR:", enemySpawn.rect.right)
+    enemy = Enemy(random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX), random.randint(enemySpawn.rect.top+borderOffsetY, enemySpawn.rect.bottom-borderOffsetY))
     allSprites.add(enemy)
     liveSprites.add(enemy)
     enemySprites.add(enemy)
     enemyRects.append(enemy.hitboxRect)
     enemy.CreateLocalRects(allSprites)
     enemy.pathFind.CreateLocalPathMap()
-
-camera = Camera.Camera(player, (screenW, screenH))
 
 #################### GAME LOOP ####################
 
@@ -418,10 +441,11 @@ while run:
             canPathfind = True
             showPathSprites.empty()
         
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            print("Mpos")
-            if event.button == 1:
-                player.UseItem()
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            #print("Mpos:", pygame.mouse.get_pos())
+            player.isShooting = True
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            player.isShooting = False
 
     for sprite in liveSprites:
         sprite.Update()
@@ -434,6 +458,12 @@ while run:
         drawnRect.height = sprite.rect.height * zoomLevel
         screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+    
+    for sprite in noCollisionSprites:
+        drawnRect = sprite.rect.copy()
+        drawnRect.width = sprite.rect.width * zoomLevel
+        drawnRect.height = sprite.rect.height * zoomLevel
+        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
     """for sprite in showPathSprites:
         drawnRect = sprite.rect.copy()
@@ -449,8 +479,5 @@ while run:
     
     pygame.display.update()
     clock.tick(60)
-    
-pygame.quit()
-
     
 pygame.quit()

@@ -196,7 +196,6 @@ class Pathfinding():
         self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
         for sprite in self.pathSprites:
             self.localPathMap.append([sprite.pos, [sprite.g, sprite.h, sprite.connectedCell, sprite.nextToWall, sprite.hasObstacle, sprite.isTarget]])
-        print("len path map:", len(self.localPathMap))
         self.FixEdges()
     
     def CleanPath(self):
