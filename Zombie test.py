@@ -12,10 +12,12 @@ pygame.display.set_caption("Zombie Test")
 
 zoomLevel = Camera.zoomLevel
 
-blockWidth = 15 * zoomLevel
+blockWidth = 15 
 widthOfMap = 0
 for i in MapMaker.map[0]:
         widthOfMap += 1
+
+topSpawnPoint = (50, -50)
 
 mapW = 32*widthOfMap
 mapH = 32*len(MapMaker.map)
@@ -389,11 +391,11 @@ pygame.time.set_timer(allowPathfinding, timeInterval)
 
 lastTime = time.time()
 
-Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites)
+Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, topSpawnPoint[1])
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
 
-for _ in range(30):
+for _ in range(5):
     enemy = Enemy(random.randint(32, mapW-32), random.randint(32, mapH-32))
     allSprites.add(enemy)
     liveSprites.add(enemy)
@@ -432,17 +434,17 @@ while run:
         screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
 
-    for sprite in showPathSprites:
-        drawnRect = sprite.rect.copy()
-        drawnRect.width = sprite.rect.width * zoomLevel
-        drawnRect.height = sprite.rect.height * zoomLevel
-        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-        
-    """for sprite in pathSprites:
+    """for sprite in showPathSprites:
         drawnRect = sprite.rect.copy()
         drawnRect.width = sprite.rect.width * zoomLevel
         drawnRect.height = sprite.rect.height * zoomLevel
         screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))"""
+        
+    for sprite in pathSprites:
+        drawnRect = sprite.rect.copy()
+        drawnRect.width = sprite.rect.width * zoomLevel
+        drawnRect.height = sprite.rect.height * zoomLevel
+        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
     
     pygame.display.update()
     clock.tick(60)

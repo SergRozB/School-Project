@@ -233,12 +233,12 @@ class Pathfinding():
             if not cell.hasObstacle:
                 return cell.pos
     
-def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup):
+def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup, top):
     # Needs to be used before pathfinding method
     # Block count needs to be array in form (horizontalCount, verticalCount)
     verticalCount = blockCount[1]
     horizontalCount = blockCount[0]
-    top = 0
+    top = top
     y = 0
     for row in range(verticalCount):
         y += 1
