@@ -2,7 +2,11 @@ import pygame
 import Camera
 
 white = (255, 255, 255)
-map = """WWWWWWWWW    WWWWWWWWWWWWWW
+map = """WWWWWWWWWWWWWWWWWWWWWWWWWWW    
+         W               W         W
+         W               W         W
+         WWWWWWW   WWWWWWWWWWWWWWWWW         
+         W               W         W
          W               W         W
          W               W         W 
          W               W         W    
