@@ -17,7 +17,8 @@ widthOfMap = 0
 for i in MapMaker.map[0]:
         widthOfMap += 1
 
-topSpawnPoint = (50, -50)
+topSpawnPoint = (50, 50)
+top = 0
 
 mapW = 32*widthOfMap
 mapH = 32*len(MapMaker.map)
@@ -34,8 +35,8 @@ timeInterval = 500 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
-horizontalCount = math.ceil(mapW/blockWidth) + 5
-verticalCount = math.ceil(mapH/blockWidth) + 5
+horizontalCount = math.ceil(mapW/blockWidth) +1
+verticalCount = math.ceil((mapH-top)/blockWidth) +1
 
 dt = 0
 
@@ -128,21 +129,17 @@ class Player(MoveObject):
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
 
+        self.lookDirection = 0
         self.inventory = []
 
     def UseItem(self):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.MOUSEBUTTONDOWN]:
-            AutoRifle.Use()
+        AutoRifle.Use(self)
 
     def CheckControls(self):
         keys = pygame.key.get_pressed()
         self.direction.x = 0
         self.direction.y = 0
 
-        if keys[pygame.K_SPACE]:
-            AutoRifle.Use(player)
-    
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.direction.x = -1*self.speed
 
@@ -178,7 +175,6 @@ class Player(MoveObject):
         self.oldRect = self.hitboxRect.copy()
 
         self.CheckControls()
-        self.UseItem()
         self.Move(True)
         self.RotateToMouse()
     
@@ -390,13 +386,13 @@ run = True
 pygame.time.set_timer(allowPathfinding, timeInterval)
 
 lastTime = time.time()
-
-Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, topSpawnPoint[1])
+print("top:", top)
+Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top)
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
 
 for _ in range(5):
-    enemy = Enemy(random.randint(32, mapW-32), random.randint(32, mapH-32))
+    enemy = Enemy(topSpawnPoint[0], topSpawnPoint[1])
     allSprites.add(enemy)
     liveSprites.add(enemy)
     enemySprites.add(enemy)
@@ -421,6 +417,11 @@ while run:
         if event.type == allowPathfinding:
             canPathfind = True
             showPathSprites.empty()
+        
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            print("Mpos")
+            if event.button == 1:
+                player.UseItem()
 
     for sprite in liveSprites:
         sprite.Update()
@@ -440,13 +441,16 @@ while run:
         drawnRect.height = sprite.rect.height * zoomLevel
         screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))"""
         
-    for sprite in pathSprites:
+    """for sprite in pathSprites:
         drawnRect = sprite.rect.copy()
         drawnRect.width = sprite.rect.width * zoomLevel
         drawnRect.height = sprite.rect.height * zoomLevel
-        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))"""
     
     pygame.display.update()
     clock.tick(60)
+    
+pygame.quit()
+
     
 pygame.quit()
