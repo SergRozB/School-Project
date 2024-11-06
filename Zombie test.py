@@ -229,7 +229,7 @@ class Enemy(MoveObject):
         velX = self.speed * math.cos(math.radians(self.angle))
         velY = self.speed * math.sin(math.radians(self.angle))
         self.direction = pygame.math.Vector2(velX, velY)
-        self.image = pygame.transform.rotate(self.baseEnemyImage, -self.angle)
+        self.image = pygame.transform.rotate(self.baseEnemyImage, -self.angle - 90)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
         self.rect.center = self.hitboxRect.center
     
@@ -260,7 +260,7 @@ class Enemy(MoveObject):
         if len(self.pathFind.path) > 0:
             self.FollowPath()
         self.RotateToTarget()
-        self.Separate(10)
+        self.Separate(2)
         self.Move(True)
         self.closeRect.center = self.hitboxRect.center
         #pygame.draw.rect(screen, white, self.closeRect)
@@ -383,7 +383,7 @@ enemyRects = [] # List of enemy rects
 #################### CREATE OBJECTS ####################
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
-player = Player((200, 200))
+player = Player((32, 128))
 enemySpawn = EnemySpawnArea((32, 32), (25*32, 3*32))
 
 #################### SETUP ####################
@@ -413,11 +413,13 @@ camera = Camera.Camera(player, (screenW, screenH))
 
 #################### SPAWN ZOMBIES ####################
 
-for _ in range(15):
+print("BROL:", enemySpawn.rect.left, "| BROR:", enemySpawn.rect.right)
+print("BROu:", enemySpawn.rect.top, "| BROd:", enemySpawn.rect.bottom)
+for _ in range(0):
     borderOffsetX = 16
     borderOffsetY = 16
-    print("BROL:", enemySpawn.rect.left, "| BROR:", enemySpawn.rect.right)
     enemy = Enemy(random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX), random.randint(enemySpawn.rect.top+borderOffsetY, enemySpawn.rect.bottom-borderOffsetY))
+    print("Enemy pos:", enemy.pos, "| Enemy rect pos:", enemy.hitboxRect.center)
     allSprites.add(enemy)
     liveSprites.add(enemy)
     enemySprites.add(enemy)
