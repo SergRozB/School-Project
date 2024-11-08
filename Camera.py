@@ -1,5 +1,5 @@
 import pygame
-zoomLevel = 1.4
+zoomLevel = 0.7
 
 class Camera():
     def __init__(self, player, screenValues):

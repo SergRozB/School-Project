@@ -367,6 +367,15 @@ class EnemySpawnArea(pygame.sprite.Sprite):
         self.pos = pygame.math.Vector2(pos[0], pos[1])
         self.rect = self.image.get_rect(topleft = self.pos)
 
+class TestWall(pygame.sprite.Sprite):
+    def __init__(self, pos):
+        super().__init__()
+        self.image = pygame.image.load("SpriteImages\Tile1.png")
+        self.pos = pygame.math.Vector2(pos[0], pos[1])
+        self.hitboxRect = self.image.get_rect(center = self.pos)
+        self.rect = self.hitboxRect.copy()
+        self.oldRect = self.hitboxRect.copy()
+
 #################### CREATE GROUPS/LISTS ####################
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
@@ -383,7 +392,7 @@ enemyRects = [] # List of enemy rects
 #################### CREATE OBJECTS ####################
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
-player = Player((32, 128))
+player = Player((150, 350))
 enemySpawn = EnemySpawnArea((32, 32), (25*32, 3*32))
 
 #################### SETUP ####################
@@ -412,13 +421,21 @@ Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obst
 camera = Camera.Camera(player, (screenW, screenH))
 
 #################### SPAWN ZOMBIES ####################
-
+borderOffsetX = 16
+borderOffsetY = 16
 print("BROL:", enemySpawn.rect.left, "| BROR:", enemySpawn.rect.right)
 print("BROu:", enemySpawn.rect.top, "| BROd:", enemySpawn.rect.bottom)
+print("BROL:", enemySpawn.rect.left+borderOffsetX, "| BROR:", enemySpawn.rect.right-borderOffsetX)
+print("BROu:", enemySpawn.rect.top+borderOffsetX, "| BROd:", enemySpawn.rect.bottom-borderOffsetX)
+for _ in range(15):
+    allSprites.add(TestWall((816, enemySpawn.rect.bottom-borderOffsetX)))
+    #allSprites.add(MapMaker.Wall((random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX),random.randint(enemySpawn.rect.top+borderOffsetX, enemySpawn.rect.bottom-borderOffsetX))))
 for _ in range(0):
     borderOffsetX = 16
     borderOffsetY = 16
-    enemy = Enemy(random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX), random.randint(enemySpawn.rect.top+borderOffsetY, enemySpawn.rect.bottom-borderOffsetY))
+    enemy = Enemy(random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX), random.randint(enemySpawn.rect.top+borderOffsetX, enemySpawn.rect.bottom-borderOffsetX))
+    #enemy = Enemy(random.randint(30, 31), random.randint(48, 112))
+    #enemy = Enemy(30, 30)
     print("Enemy pos:", enemy.pos, "| Enemy rect pos:", enemy.hitboxRect.center)
     allSprites.add(enemy)
     liveSprites.add(enemy)
@@ -461,11 +478,11 @@ while run:
         screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
     
-    for sprite in noCollisionSprites:
-        drawnRect = sprite.rect.copy()
-        drawnRect.width = sprite.rect.width * zoomLevel
-        drawnRect.height = sprite.rect.height * zoomLevel
-        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+    #for sprite in noCollisionSprites:
+        #drawnRect = sprite.rect.copy()
+        #drawnRect.width = sprite.rect.width * zoomLevel
+        #drawnRect.height = sprite.rect.height * zoomLevel
+        #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
     """for sprite in showPathSprites:
         drawnRect = sprite.rect.copy()
