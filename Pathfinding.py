@@ -56,8 +56,14 @@ class Pathfinding():
                         self.SetCellInfo(pos, 'parent', sourcePos)
 
                         if pos not in cellsToSearch:
-                            self.SetCellInfo(pos, 'h', self.GetDist(pos, endPos))
+                            cellH = self.GetDist(pos, endPos)
+                            cellF = cellH + costToN
+                            self.SetCellInfo(pos, 'h', cellH)
                             cellsToSearch.append(pos) 
+                            if self.rootToSearchNode != None:
+                                self.rootToSearchNode.Insert(cellF, pos)
+                            else:
+                                self.rootToSearchNode = BinaryTree.TreeNode(cellF, pos, None, None)
                     neighbours.append(pos)
         return neighbours
     
@@ -79,18 +85,30 @@ class Pathfinding():
         cellsToSearch = [startCellPos]
         processedCells = []
         neighbours = []
+        self.rootToSearchNode = BinaryTree.TreeNode(self.FindCellInfo(startCellPos,  'f'), startCellPos, None, None) # Binary tree representing cells to search
         while not hasCompleted:
             # Get best cell cost
-            bestCellPos = cellsToSearch[0]
-            bestF = self.FindCellInfo(bestCellPos, 'f')
-            self.rootNode = BinaryTree.TreeNode(bestF, bestCellPos)
+            #bestCellPos = cellsToSearch[0]
+            #bestF = self.FindCellInfo(bestCellPos, 'f')
+            #self.rootNode = BinaryTree.TreeNode(bestF, bestCellPos)
 
-            for cellPos in cellsToSearch:
-                self.rootNode.Insert(self.FindCellInfo(cellPos, 'f'), cellPos)
-            bestCellPos = self.rootNode.FindLowest()[1]
-
+            #for cellPos in cellsToSearch:
+                #self.rootNode.Insert(self.FindCellInfo(cellPos, 'f'), cellPos)
+            bestF, bestCellPos = self.rootToSearchNode.FindLowest() 
+            print("BBBBBBBBBEEEEEEEESSSSSSSTTTTTTT:", bestCellPos)
+            print("celltosearchlist:", cellsToSearch)
             processedCells.append(bestCellPos)
             cellsToSearch.remove(bestCellPos)
+            if self.rootToSearchNode.left is None and self.rootToSearchNode.right is None:
+                print("delete 1")
+                self.rootToSearchNode = None
+            else:
+                print("delete 2")
+                self.rootToSearchNode.InorderTraversal()
+                print("\n")
+                self.rootToSearchNode.Delete(bestF, bestCellPos)
+                self.rootToSearchNode.InorderTraversal()
+                print("\n")
             neighbours = self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)
             if neighbours == -1:
                 self.CompilePath(startCellPos, endCellPos)

@@ -186,9 +186,9 @@ class Player(MoveObject):
 
 class Enemy(MoveObject):
     # Constructor. 
-    def __init__(self, x, y):
+    def __init__(self, startingPos):
         # Call the parent class (Move Object) constructor
-        super().__init__((x,y), 200)
+        super().__init__(startingPos, 150)
 
         # Create the image of the enemy
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\zombie.png").convert_alpha(), 0, 1)
@@ -199,9 +199,6 @@ class Enemy(MoveObject):
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
         self.closeRect = pygame.Rect(0, 0, self.hitboxRect.width*1.5, self.hitboxRect.height*1.5)
-        # Get attributes for the height/width of the screen
-        self.screenheight = pygame.display.get_surface().get_height()
-        self.screenwidth = pygame.display.get_surface().get_width()
 
         self.target = player
 
@@ -260,17 +257,20 @@ class Enemy(MoveObject):
         if len(self.pathFind.path) > 0:
             self.FollowPath()
         self.RotateToTarget()
-        self.Separate(2)
         self.Move(True)
         self.closeRect.center = self.hitboxRect.center
         #pygame.draw.rect(screen, white, self.closeRect)
+        #self.Separate(0.1)
     
     def Separate(self, factor):
         enemyClose = enemyRects[self.closeRect.collidelist(enemyRects)]
         x = self.pos.x - enemyClose.x
         y = self.pos.y - enemyClose.y
-        self.direction.x += x*factor
-        self.direction.y += y*factor
+        newVector = pygame.math.Vector2(self.direction.x + x*factor, self.direction.y + y*factor)
+        newVector.normalize()
+        self.direction = newVector
+        #self.direction.x += x*factor
+        #self.direction.y += y*factor
 
 class RangedWeapon():
     def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed):
@@ -427,16 +427,23 @@ print("BROL:", enemySpawn.rect.left, "| BROR:", enemySpawn.rect.right)
 print("BROu:", enemySpawn.rect.top, "| BROd:", enemySpawn.rect.bottom)
 print("BROL:", enemySpawn.rect.left+borderOffsetX, "| BROR:", enemySpawn.rect.right-borderOffsetX)
 print("BROu:", enemySpawn.rect.top+borderOffsetX, "| BROd:", enemySpawn.rect.bottom-borderOffsetX)
-for _ in range(15):
-    allSprites.add(TestWall((816, enemySpawn.rect.bottom-borderOffsetX)))
-    #allSprites.add(MapMaker.Wall((random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX),random.randint(enemySpawn.rect.top+borderOffsetX, enemySpawn.rect.bottom-borderOffsetX))))
+#allSprites.add(TestWall((enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.top+borderOffsetX)))
+#allSprites.add(TestWall((enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.bottom-borderOffsetX)))
+#allSprites.add(TestWall((enemySpawn.rect.right-borderOffsetX, enemySpawn.rect.top+borderOffsetX)))
+#allSprites.add(TestWall((enemySpawn.rect.right-borderOffsetX, enemySpawn.rect.bottom-borderOffsetX)))
+leftX = enemySpawn.rect.left+borderOffsetX
+rightX = enemySpawn.rect.right-borderOffsetX
+topY = enemySpawn.rect.top+borderOffsetY
+bottomY = enemySpawn.rect.bottom-borderOffsetY
 for _ in range(0):
-    borderOffsetX = 16
-    borderOffsetY = 16
-    enemy = Enemy(random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX), random.randint(enemySpawn.rect.top+borderOffsetX, enemySpawn.rect.bottom-borderOffsetX))
+    randomCoords = (random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX),random.randint(enemySpawn.rect.top+borderOffsetX, enemySpawn.rect.bottom-borderOffsetX))
+    print("coords:", randomCoords)
+    allSprites.add(TestWall(randomCoords))
+for _ in range(15):
+    enemy = Enemy((random.randint(leftX, rightX), random.randint(topY, bottomY)))
     #enemy = Enemy(random.randint(30, 31), random.randint(48, 112))
-    #enemy = Enemy(30, 30)
-    print("Enemy pos:", enemy.pos, "| Enemy rect pos:", enemy.hitboxRect.center)
+    #enemy = Enemy((leftX, topY))
+    #print("Enemy pos:", enemy.pos, "| Enemy rect pos:", enemy.hitboxRect.center)
     allSprites.add(enemy)
     liveSprites.add(enemy)
     enemySprites.add(enemy)
@@ -490,11 +497,11 @@ while run:
         drawnRect.height = sprite.rect.height * zoomLevel
         screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))"""
         
-    """for sprite in pathSprites:
-        drawnRect = sprite.rect.copy()
-        drawnRect.width = sprite.rect.width * zoomLevel
-        drawnRect.height = sprite.rect.height * zoomLevel
-        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))"""
+    #for sprite in pathSprites:
+        #drawnRect = sprite.rect.copy()
+        #drawnRect.width = sprite.rect.width * zoomLevel
+        #drawnRect.height = sprite.rect.height * zoomLevel
+        #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
     
     pygame.display.update()
     clock.tick(60)
