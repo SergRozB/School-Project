@@ -5,11 +5,9 @@ import MapMaker
 import Pathfinding
 import time
 import Camera
+import cProfile
 
 pygame.init()
-
-pygame.display.set_caption("Zombie Test")
-
 zoomLevel = Camera.zoomLevel
 
 blockWidth = 15 
@@ -452,7 +450,6 @@ for _ in range(15):
     enemy.pathFind.CreateLocalPathMap()
 
 #################### GAME LOOP ####################
-
 while run:
     dt = time.time() - lastTime
     lastTime = time.time()
@@ -475,6 +472,8 @@ while run:
 
     for sprite in liveSprites:
         sprite.Update()
+        #print("name:", type(sprite).__name__)
+        #cProfile.run('sprite.Update()', globals(), locals())
         #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
     
     camera.scroll()
@@ -505,5 +504,5 @@ while run:
     
     pygame.display.update()
     clock.tick(60)
-    
+
 pygame.quit()

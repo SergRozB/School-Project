@@ -62,35 +62,44 @@ class TreeNode():
         else:
             return self.right.Search(value, pos)
                 
-    def Delete(self, value, pos):
-        print("current:", self.value)
+    def Delete(self, value, pos, root):
         if value < self.value:
-            self.left.Delete(value, pos)
+            self.left.Delete(value, pos, root)
         elif value >= self.value and pos != self.pos:
-            self.right.Delete(value, pos)
+            self.right.Delete(value, pos, root)
         else:
+            direction = self.direction
+            parent = self.parent
             if self.left is None:
-                if self.direction == "R":
-                    self.parent.right = self.right
-                elif self.direction == "L":
-                    self.parent.left = self.right
-                self = self.right
-                try:
-                    print("self val:", self.value)
-                except:
-                    pass
+                if self.right != None:
+                    self.value, self.pos, self.left, self.right = self.right.value, self.right.pos, self.right.left, self.right.right
+                    if self.left != None:
+                        self.left.parent = self
+                    if self.right != None:
+                        self.right.parent = self
+                else:
+                    self = self.right
+                    if direction == "L":
+                        parent.left = self
+                    else:
+                        parent.right = self
+                return None
                 
             elif self.right is None:
-                if self.direction == "R":
-                    self.parent.right = self.left
-                elif self.direction == "L":
-                    self.parent.left = self.left
-                self = self.left
+                self.value, self.pos, self.left, self.right = self.left.value, self.left.pos, self.left.left, self.left.right
+                self.left.parent = self
+                self.right.parent = self
+                if direction == "L":
+                    parent.left = self
+                else:
+                    parent.right = self
+                return None
             else:
                 self.value, self.pos = self.left.InOrderSuccessor()
-                self.left.Delete(self.value, self.pos)
+                self.left.Delete(self.value, self.pos, root)
+                return None
         
-        return self
+        #return self
     
     def InOrderSuccessor(self):
         maximum = self.value
@@ -99,15 +108,3 @@ class TreeNode():
             return self.right.InOrderSuccessor()
         return (maximum, self.pos)
         
-root = TreeNode(198, (10, 5), None, None)
-root.Insert(192, (12,6))
-root.Insert(206, (12,5))
-root.Insert(186, (12, 7))
-root.Insert(178, (10, 7))
-root.Insert(184, (10, 6))
-root.Insert(198, (10, 5))
-root.Insert(1176, (12, 8))
-root.Insert(1168, (10,8))
-root.InorderTraversal()
-root.Delete(178, (10,7))
-root.InorderTraversal()

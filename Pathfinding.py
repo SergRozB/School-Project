@@ -79,7 +79,6 @@ class Pathfinding():
         # The target and origin objects MUST have a rect called "hitboxRect"
         endCellPos = self.GetRectCellPos(targetRect)
         startCellPos = self.GetRectCellPos(originRect)
-        #print("Start cell pos:", startCellPos)
         self.SetCellInfo(endCellPos, 'isTarget', True)
         hasCompleted = False
         cellsToSearch = [startCellPos]
@@ -88,27 +87,13 @@ class Pathfinding():
         self.rootToSearchNode = BinaryTree.TreeNode(self.FindCellInfo(startCellPos,  'f'), startCellPos, None, None) # Binary tree representing cells to search
         while not hasCompleted:
             # Get best cell cost
-            #bestCellPos = cellsToSearch[0]
-            #bestF = self.FindCellInfo(bestCellPos, 'f')
-            #self.rootNode = BinaryTree.TreeNode(bestF, bestCellPos)
-
-            #for cellPos in cellsToSearch:
-                #self.rootNode.Insert(self.FindCellInfo(cellPos, 'f'), cellPos)
             bestF, bestCellPos = self.rootToSearchNode.FindLowest() 
-            print("BBBBBBBBBEEEEEEEESSSSSSSTTTTTTT:", bestCellPos)
-            print("celltosearchlist:", cellsToSearch)
             processedCells.append(bestCellPos)
             cellsToSearch.remove(bestCellPos)
             if self.rootToSearchNode.left is None and self.rootToSearchNode.right is None:
-                print("delete 1")
                 self.rootToSearchNode = None
             else:
-                print("delete 2")
-                self.rootToSearchNode.InorderTraversal()
-                print("\n")
-                self.rootToSearchNode.Delete(bestF, bestCellPos)
-                self.rootToSearchNode.InorderTraversal()
-                print("\n")
+                self.rootToSearchNode.Delete(bestF, bestCellPos, self.rootToSearchNode)
             neighbours = self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)
             if neighbours == -1:
                 self.CompilePath(startCellPos, endCellPos)
