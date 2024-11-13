@@ -10,7 +10,7 @@ import cProfile
 pygame.init()
 zoomLevel = Camera.zoomLevel
 
-blockWidth = 15 
+blockWidth = 32 
 widthOfMap = 0
 for i in MapMaker.map[0]:
     widthOfMap += 1
@@ -30,7 +30,7 @@ green = (0, 255, 0)
 screen = pygame.display.set_mode([screenW, screenH])
 clock = pygame.time.Clock()
 
-timeInterval = 500 # Time interval for when to pathfind in miliseconds
+timeInterval = 1000 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
@@ -183,7 +183,7 @@ class Enemy(MoveObject):
     # Constructor. 
     def __init__(self, startingPos):
         # Call the parent class (Move Object) constructor
-        super().__init__(startingPos, 150)
+        super().__init__(startingPos, 50)
 
         # Create the image of the enemy
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\zombie.png").convert_alpha(), 0, 1)
@@ -247,6 +247,8 @@ class Enemy(MoveObject):
         self.CheckDeath()
         if canPathfind:
             self.pathFind.Pathfind(self.hitboxRect, player.hitboxRect)
+            #print("inside")
+            #cProfile.runctx('self.pathFind.Pathfind(self.hitboxRect, player.hitboxRect)', globals(), locals(), sort='cumtime')
             self.override = self.pathFind.override
 
         if len(self.pathFind.path) > 0:
@@ -434,7 +436,7 @@ for _ in range(0):
     randomCoords = (random.randint(enemySpawn.rect.left+borderOffsetX, enemySpawn.rect.right-borderOffsetX),random.randint(enemySpawn.rect.top+borderOffsetX, enemySpawn.rect.bottom-borderOffsetX))
     print("coords:", randomCoords)
     allSprites.add(TestWall(randomCoords))
-for _ in range(15):
+for _ in range(1):
     enemy = Enemy((random.randint(leftX, rightX), random.randint(topY, bottomY)))
     #enemy = Enemy(random.randint(30, 31), random.randint(48, 112))
     #enemy = Enemy((leftX, topY))
@@ -447,59 +449,65 @@ for _ in range(15):
     enemy.pathFind.CreateLocalPathMap()
 
 #################### GAME LOOP ####################
-while run:
-    dt = time.time() - lastTime
-    lastTime = time.time()
+def main():
+    global canPathfind
+    global run
+    global lastTime
+    global dt
+    while run:
+        dt = time.time() - lastTime
+        lastTime = time.time()
 
-    screen.fill(black)
-    canPathfind = False
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
+        screen.fill(black)
+        canPathfind = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            
+            if event.type == allowPathfinding:
+                canPathfind = True
+                showPathSprites.empty()
+            
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                #print("Mpos:", pygame.mouse.get_pos())
+                player.isShooting = True
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                player.isShooting = False
+
+        for sprite in liveSprites:
+            sprite.Update()
+            #print("name:", type(sprite).__name__)
+            #cProfile.runctx('sprite.Update()', globals(), locals(), sort='cumtime')
+            #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
         
-        if event.type == allowPathfinding:
-            canPathfind = True
-            showPathSprites.empty()
+        camera.scroll()
+        for sprite in allSprites:
+            drawnRect = sprite.rect.copy()
+            drawnRect.width = sprite.rect.width * zoomLevel
+            drawnRect.height = sprite.rect.height * zoomLevel
+            screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+            #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
         
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            #print("Mpos:", pygame.mouse.get_pos())
-            player.isShooting = True
-        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            player.isShooting = False
+        #for sprite in noCollisionSprites:
+            #drawnRect = sprite.rect.copy()
+            #drawnRect.width = sprite.rect.width * zoomLevel
+            #drawnRect.height = sprite.rect.height * zoomLevel
+            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
-    for sprite in liveSprites:
-        sprite.Update()
-        #print("name:", type(sprite).__name__)
-        #cProfile.run('sprite.Update()', globals(), locals())
-        #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
-    
-    camera.scroll()
-    for sprite in allSprites:
-        drawnRect = sprite.rect.copy()
-        drawnRect.width = sprite.rect.width * zoomLevel
-        drawnRect.height = sprite.rect.height * zoomLevel
-        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-        #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
-    
-    #for sprite in noCollisionSprites:
-        #drawnRect = sprite.rect.copy()
-        #drawnRect.width = sprite.rect.width * zoomLevel
-        #drawnRect.height = sprite.rect.height * zoomLevel
-        #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-
-    """for sprite in showPathSprites:
-        drawnRect = sprite.rect.copy()
-        drawnRect.width = sprite.rect.width * zoomLevel
-        drawnRect.height = sprite.rect.height * zoomLevel
-        screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))"""
+        for sprite in showPathSprites:
+            drawnRect = sprite.rect.copy()
+            drawnRect.width = sprite.rect.width * zoomLevel
+            drawnRect.height = sprite.rect.height * zoomLevel
+            screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+            
+        #for sprite in pathSprites:
+            #drawnRect = sprite.rect.copy()
+            #drawnRect.width = sprite.rect.width * zoomLevel
+            #drawnRect.height = sprite.rect.height * zoomLevel
+            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         
-    #for sprite in pathSprites:
-        #drawnRect = sprite.rect.copy()
-        #drawnRect.width = sprite.rect.width * zoomLevel
-        #drawnRect.height = sprite.rect.height * zoomLevel
-        #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-    
-    pygame.display.update()
-    clock.tick(60)
-
+        pygame.display.update()
+        clock.tick(60)
+main()
+#cProfile.runctx('Enemy.Update()', globals(), locals())
 pygame.quit()

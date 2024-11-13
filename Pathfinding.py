@@ -1,9 +1,11 @@
 import BinaryTree
 import PathfindingBlock
 import pygame
+import cProfile
 
 white = (255, 255, 255)
 red = (255, 0, 0)
+purple = (128, 0, 128)
 
 class Pathfinding():
 
@@ -60,10 +62,10 @@ class Pathfinding():
                             cellF = cellH + costToN
                             self.SetCellInfo(pos, 'h', cellH)
                             cellsToSearch.append(pos) 
-                            if self.rootToSearchNode != None:
-                                self.rootToSearchNode.Insert(cellF, pos)
-                            else:
-                                self.rootToSearchNode = BinaryTree.TreeNode(cellF, pos, None, None)
+                            #if self.rootToSearchNode != None:
+                                #self.rootToSearchNode.Insert(cellF, pos)
+                            #else:
+                                #self.rootToSearchNode = BinaryTree.TreeNode(cellF, pos, None, None)
                     neighbours.append(pos)
         return neighbours
     
@@ -84,17 +86,27 @@ class Pathfinding():
         cellsToSearch = [startCellPos]
         processedCells = []
         neighbours = []
-        self.rootToSearchNode = BinaryTree.TreeNode(self.FindCellInfo(startCellPos,  'f'), startCellPos, None, None) # Binary tree representing cells to search
+        #self.rootToSearchNode = BinaryTree.TreeNode(self.FindCellInfo(startCellPos,  'f'), startCellPos, None, None) # Binary tree representing cells to search
         while not hasCompleted:
             # Get best cell cost
-            bestF, bestCellPos = self.rootToSearchNode.FindLowest() 
+            #bestF, bestCellPos = self.rootToSearchNode.FindLowest() 
+            bestCellPos = cellsToSearch[0]
+            bestF = self.FindCellInfo(bestCellPos, "f")
+            bestH = self.FindCellInfo(bestCellPos, "h")
+            for cell in cellsToSearch:
+                newF = self.FindCellInfo(cell, "f")
+                newH = self.FindCellInfo(cell, "h")
+                if newF < bestF or (newF == bestF and newH < bestH):
+                    bestCellPos = cell
+                    bestF = newF
             processedCells.append(bestCellPos)
             cellsToSearch.remove(bestCellPos)
-            if self.rootToSearchNode.left is None and self.rootToSearchNode.right is None:
-                self.rootToSearchNode = None
-            else:
-                self.rootToSearchNode.Delete(bestF, bestCellPos, self.rootToSearchNode)
+            #if self.rootToSearchNode.left is None and self.rootToSearchNode.right is None:
+                #self.rootToSearchNode = None
+            #else:
+                #self.rootToSearchNode.Delete(bestF, bestCellPos, self.rootToSearchNode)
             neighbours = self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)
+            #cProfile.runctx('self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)', globals(), locals(), sort='cumtime')
             if neighbours == -1:
                 self.CompilePath(startCellPos, endCellPos)
                 hasCompleted = True
@@ -138,29 +150,29 @@ class Pathfinding():
             return "no pos"
         y = pos[1]
         x = pos[0]
-        for i in range(self.verticalCount):
-            #print("|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
-            #print("len:", len(self.localPathMap))
-            cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
-            #print("cell pos:", cell[0],"|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
-            if cell[0] == pos:
-                if wanted == 'g':
-                    return cell[1][0]
-                if wanted == 'h':
-                    return cell[1][1]
-                if wanted == 'parent':
-                    return cell[1][2]
-                if wanted == 'nextToWall':
-                    return cell[1][3]
-                if wanted == 'hasObstacle':
-                    return cell[1][4]
-                if wanted == 'isTarget':
-                    return cell[1][5]
-                if wanted == 'f':
-                    f = cell[1][0] + cell[1][1]
-                    return f
-                if wanted == 'exists':
-                    return True
+        #for i in range(self.verticalCount):
+        #print("|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
+        #print("len:", len(self.localPathMap))
+        cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
+        #print("cell pos:", cell[0],"|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
+        if cell[0] == pos:
+            if wanted == 'g':
+                return cell[1][0]
+            if wanted == 'h':
+                return cell[1][1]
+            if wanted == 'parent':
+                return cell[1][2]
+            if wanted == 'nextToWall':
+                return cell[1][3]
+            if wanted == 'hasObstacle':
+                return cell[1][4]
+            if wanted == 'isTarget':
+                return cell[1][5]
+            if wanted == 'f':
+                f = cell[1][0] + cell[1][1]
+                return f
+            if wanted == 'exists':
+                return True
         return 'not found' 
                 
     def SetCellInfo(self, pos, wanted, change):
@@ -226,7 +238,11 @@ class Pathfinding():
                 for pos in horizontalNPos:
                     if self.FindCellInfo(pos, 'exists'):
                         self.SetCellInfo(pos, 'nextToWall', True)
-    
+                        cellObject = self.GetCell(pos)
+                        if type(cellObject) != str:
+                            if not cellObject.hasObstacle:
+                                cellObject.changeColour(purple)
+        
     def GetRectCellPos(self, rect):
         # Gets the position of a cell colliding with the given rect
         indices = rect.collidelistall(self.pathRectList)
