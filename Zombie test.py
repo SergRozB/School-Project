@@ -144,20 +144,17 @@ class Player(MoveObject):
         self.direction.y = 0
 
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.direction.x = -1*self.speed
+            self.direction.x = -1
 
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.direction.x = 1*self.speed
+            self.direction.x = 1
 
         if keys[pygame.K_UP] or keys[pygame.K_w]:
-            self.direction.y = -1*self.speed
+            self.direction.y = -1
  
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            self.direction.y = 1*self.speed
+            self.direction.y = 1
 
-        if self.direction.x != 0 and self.direction.y != 0:
-            self.direction.x /= math.sqrt(self.speed)
-            self.direction.y /= math.sqrt(self.speed)
     
     def RotateToMouse(self):
         x = self.hitboxRect.centerx 
