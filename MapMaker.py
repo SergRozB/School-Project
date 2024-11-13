@@ -2,27 +2,44 @@ import pygame
 import Camera
 
 white = (255, 255, 255)
-map = """WWWWWWWWWWWWWWWWWWWWWWWWWWW    
-         W                         W
-         W                         W
-         W                         W
-         WWWWWWW   WWWWWWWWWWWWWWWWW         
-         W               W         W
-         W               W         W
-         W               W         W 
-         W               W         W    
-         W               W         W  
-         W       W       W         W 
-         W       W       W         W 
-         W                         W
-         W                         W   
-         W                W        W 
-         W                W        W
-         W                W        W
-         W                W        W
-         W                W        W
-         W                W        W
-         WWWWWWWWWWWWWWWWWWWWWWWWWWW"""
+map = """WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW    
+         W                                           W     
+         W                                           W
+         W                                           W
+         WWWWWWWWWWWWWWWWWWW   WWWWWWWWWWWWWWWWWWWWWWW                       
+         W                                           W        
+         W                                           W        
+     WWWWW                                           WWWWW       
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W   
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W 
+     W   W                                           W   W
+     W   W                                           W   W
+     W   W                                           W   W
+     WWWWW                                           WWWWW
+         W                                           W
+         W                                           W
+         WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW                                         
+         W                                           W
+         W                                           W
+         W                                           W                                   
+         WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"""
 
 map = map.splitlines()
 wallList = []

@@ -62,10 +62,10 @@ class Pathfinding():
                             cellF = cellH + costToN
                             self.SetCellInfo(pos, 'h', cellH)
                             cellsToSearch.append(pos) 
-                            #if self.rootToSearchNode != None:
-                                #self.rootToSearchNode.Insert(cellF, pos)
-                            #else:
-                                #self.rootToSearchNode = BinaryTree.TreeNode(cellF, pos, None, None)
+                            if self.rootToSearchNode != None:
+                                self.rootToSearchNode.Insert(cellF, pos)
+                            else:
+                                self.rootToSearchNode = BinaryTree.TreeNode(cellF, pos, None, None)
                     neighbours.append(pos)
         return neighbours
     
@@ -86,25 +86,25 @@ class Pathfinding():
         cellsToSearch = [startCellPos]
         processedCells = []
         neighbours = []
-        #self.rootToSearchNode = BinaryTree.TreeNode(self.FindCellInfo(startCellPos,  'f'), startCellPos, None, None) # Binary tree representing cells to search
+        self.rootToSearchNode = BinaryTree.TreeNode(self.FindCellInfo(startCellPos,  'f'), startCellPos, None, None) # Binary tree representing cells to search
         while not hasCompleted:
             # Get best cell cost
-            #bestF, bestCellPos = self.rootToSearchNode.FindLowest() 
-            bestCellPos = cellsToSearch[0]
-            bestF = self.FindCellInfo(bestCellPos, "f")
-            bestH = self.FindCellInfo(bestCellPos, "h")
-            for cell in cellsToSearch:
-                newF = self.FindCellInfo(cell, "f")
-                newH = self.FindCellInfo(cell, "h")
-                if newF < bestF or (newF == bestF and newH < bestH):
-                    bestCellPos = cell
-                    bestF = newF
+            bestF, bestCellPos = self.rootToSearchNode.FindLowest() 
+            #bestCellPos = cellsToSearch[0]
+            #bestF = self.FindCellInfo(bestCellPos, "f")
+            #bestH = self.FindCellInfo(bestCellPos, "h")
+            #for cell in cellsToSearch:
+                #newF = self.FindCellInfo(cell, "f")
+                #newH = self.FindCellInfo(cell, "h")
+                #if newF < bestF or (newF == bestF and newH < bestH):
+                    #bestCellPos = cell
+                    #bestF = newF
             processedCells.append(bestCellPos)
             cellsToSearch.remove(bestCellPos)
-            #if self.rootToSearchNode.left is None and self.rootToSearchNode.right is None:
-                #self.rootToSearchNode = None
-            #else:
-                #self.rootToSearchNode.Delete(bestF, bestCellPos, self.rootToSearchNode)
+            if self.rootToSearchNode.left is None and self.rootToSearchNode.right is None:
+                self.rootToSearchNode = None
+            else:
+                self.rootToSearchNode.Delete(bestF, bestCellPos, self.rootToSearchNode)
             neighbours = self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)
             #cProfile.runctx('self.GetNeighbours(bestCellPos, endCellPos, processedCells, cellsToSearch)', globals(), locals(), sort='cumtime')
             if neighbours == -1:
