@@ -5,6 +5,7 @@ import cProfile
 
 white = (255, 255, 255)
 red = (255, 0, 0)
+purple = (128, 0, 128)
 
 class Pathfinding():
 
@@ -91,9 +92,13 @@ class Pathfinding():
             #bestF, bestCellPos = self.rootToSearchNode.FindLowest() 
             bestCellPos = cellsToSearch[0]
             bestF = self.FindCellInfo(bestCellPos, "f")
+            bestH = self.FindCellInfo(bestCellPos, "h")
             for cell in cellsToSearch:
-                if self.FindCellInfo(cell, "f")< bestF:
+                newF = self.FindCellInfo(cell, "f")
+                newH = self.FindCellInfo(cell, "h")
+                if newF < bestF or (newF == bestF and newH < bestH):
                     bestCellPos = cell
+                    bestF = newF
             processedCells.append(bestCellPos)
             cellsToSearch.remove(bestCellPos)
             #if self.rootToSearchNode.left is None and self.rootToSearchNode.right is None:
@@ -233,7 +238,11 @@ class Pathfinding():
                 for pos in horizontalNPos:
                     if self.FindCellInfo(pos, 'exists'):
                         self.SetCellInfo(pos, 'nextToWall', True)
-    
+                        cellObject = self.GetCell(pos)
+                        if type(cellObject) != str:
+                            if not cellObject.hasObstacle:
+                                cellObject.changeColour(purple)
+        
     def GetRectCellPos(self, rect):
         # Gets the position of a cell colliding with the given rect
         indices = rect.collidelistall(self.pathRectList)

@@ -10,7 +10,7 @@ import cProfile
 pygame.init()
 zoomLevel = Camera.zoomLevel
 
-blockWidth = 15 
+blockWidth = 32 
 widthOfMap = 0
 for i in MapMaker.map[0]:
     widthOfMap += 1
