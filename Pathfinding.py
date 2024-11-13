@@ -48,7 +48,7 @@ class Pathfinding():
                         return -1 # Returns -1, signifying that the target cell was found
                 
                 elif not self.FindCellInfo(pos, 'hasObstacle') and pos not in processedList:
-                    costToN = self.FindCellInfo(pos, 'g') + self.GetDist(sourcePos, pos) # The g cost from the source cell
+                    costToN = self.FindCellInfo(sourcePos, 'g') + self.GetDist(sourcePos, pos) # The g cost from the source cell
                     
                     if self.CheckIfDiagonal(pos, sourcePos) and self.FindCellInfo(pos, 'nextToWall') == True:
                         costToN += 1000
@@ -221,7 +221,7 @@ class Pathfinding():
                     item[1][i] = 0
                 elif i == 2:
                     item[1][i] = -1
-                elif i != 4 and i != 3:
+                elif i == 5:
                     item[1][i] = False
     
     def GetCell(self, pos):
