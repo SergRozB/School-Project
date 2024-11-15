@@ -44,6 +44,7 @@ map = """WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
 map = map.splitlines()
 wallList = []
 offset = 32 
+distToMainWall = 9
 class Wall(pygame.sprite.Sprite):
     def __init__(self, pos):
         super().__init__()
@@ -59,7 +60,7 @@ def CreateMap(map):
             if y > 0:
                 if character == "W":
                     #print("X:", x*32, "|Y:", y*32)
-                    wallList.append(Wall(((x-9)*offset, y*offset)))
+                    wallList.append(Wall(((x-distToMainWall)*offset, y*offset)))
             elif character == "W":
                 #print("X:", x*32, "|Y:", y*32)
                 wallList.append(Wall((x*offset, y*offset)))

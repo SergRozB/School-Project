@@ -12,12 +12,19 @@ zoomLevel = Camera.zoomLevel
 
 blockWidth = 34 
 widthOfMap = 0
+firstOccurrence = 1000
+# Determins the width of the map and the starting x coord 
+# from which to instantiate the pathfinding blocks.
 for line in MapMaker.map:
-    currentWidth = 0
-    for wall in line:
-        currentWidth += 1
+    currentWidth = line.rindex("W")
+    if MapMaker.map.index(line) > 0:
+        currentFirstOccurence = line.index("W") - MapMaker.distToMainWall
+    else:
+        currentFirstOccurence = line.index("W")
     if currentWidth > widthOfMap:
         widthOfMap = currentWidth
+    if currentFirstOccurence < firstOccurrence:
+        firstOccurrence = currentFirstOccurence
 
 topSpawnPoint = (100, 50)
 top = 0
@@ -38,8 +45,10 @@ timeInterval = 500 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
-horizontalCount = math.ceil(mapW/blockWidth) +1
-verticalCount = math.ceil((mapH-top)/blockWidth) +1
+print("map W and map h:", mapW, mapH)
+horizontalCount = math.ceil(mapW/blockWidth) 
+verticalCount = math.ceil((mapH-top)/blockWidth) 
+print("horz, vert:", horizontalCount, verticalCount)
 
 dt = 0
 
@@ -443,7 +452,7 @@ pygame.time.set_timer(allowPathfinding, timeInterval)
 
 lastTime = time.time()
 print("top:", top)
-Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top)
+Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
 
 camera = Camera.Camera(player, (screenW, screenH))
 
@@ -467,7 +476,7 @@ for _ in range(0):
     print("coords:", randomCoords)
     allSprites.add(TestWall(randomCoords))
 
-spawnNumber = 10
+spawnNumber = 20
 for _ in range(spawnNumber):
     enemy = Enemy((random.randint(leftX, rightX), random.randint(topY, bottomY)))
     #enemy = Enemy(random.randint(30, 31), random.randint(48, 112))
@@ -532,11 +541,11 @@ def main():
             drawnRect.height = sprite.rect.height * zoomLevel
             screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
             
-        for sprite in pathSprites:
-            drawnRect = sprite.rect.copy()
-            drawnRect.width = sprite.rect.width * zoomLevel
-            drawnRect.height = sprite.rect.height * zoomLevel
-            screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+        #for sprite in pathSprites:
+            #drawnRect = sprite.rect.copy()
+            #drawnRect.width = sprite.rect.width * zoomLevel
+            #drawnRect.height = sprite.rect.height * zoomLevel
+            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         
         pygame.display.update()
         clock.tick(60)

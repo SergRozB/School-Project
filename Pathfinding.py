@@ -2,6 +2,7 @@ import BinaryTree
 import PathfindingBlock
 import pygame
 import cProfile
+from MapMaker import distToMainWall
 
 white = (255, 255, 255)
 red = (255, 0, 0)
@@ -151,9 +152,12 @@ class Pathfinding():
         y = pos[1]
         x = pos[0]
         #for i in range(self.verticalCount):
-        #print("|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
+        #print("|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "| vertical:", self.verticalCount, "|pos wanted:", pos)
         #print("len:", len(self.localPathMap))
-        cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
+        calculatedIndex = (y-1)*self.horizontalCount + x-1
+        if calculatedIndex > len(self.localPathMap) and wanted == 'exists':
+            return False
+        cell = self.localPathMap[calculatedIndex]
         #print("cell pos:", cell[0],"|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
         if cell[0] == pos:
             if wanted == 'g':
@@ -173,6 +177,8 @@ class Pathfinding():
                 return f
             if wanted == 'exists':
                 return True
+            else:
+                return False
         return 'not found' 
                 
     def SetCellInfo(self, pos, wanted, change):
@@ -182,21 +188,20 @@ class Pathfinding():
             return "no pos"
         y = pos[1]
         x = pos[0]
-        for i in range(self.verticalCount):
-            cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
-            if cell[0] == pos:
-                if wanted == 'g':
-                    cell[1][0] = change
-                if wanted == 'h':
-                    cell[1][1] = change
-                if wanted == 'parent':
-                    cell[1][2] = change
-                if wanted == 'nextToWall':
-                    cell[1][3] = change
-                if wanted == 'hasObstacle':
-                    cell[1][4] = change
-                if wanted == 'isTarget':
-                    cell[1][5] = change
+        cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
+        if cell[0] == pos:
+            if wanted == 'g':
+                cell[1][0] = change
+            if wanted == 'h':
+                cell[1][1] = change
+            if wanted == 'parent':
+                cell[1][2] = change
+            if wanted == 'nextToWall':
+                cell[1][3] = change
+            if wanted == 'hasObstacle':
+                cell[1][4] = change
+            if wanted == 'isTarget':
+                cell[1][5] = change
 
     def GetDist(self, startPos, targetPos):
         changeY = abs(startPos[1] - targetPos[1]) 
@@ -251,7 +256,7 @@ class Pathfinding():
             if not cell.hasObstacle:
                 return cell.pos
     
-def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup, top):
+def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup, top, firstWallIndex):
     # Needs to be used before pathfinding method
     # Block count needs to be array in form (horizontalCount, verticalCount)
     verticalCount = blockCount[1]
@@ -263,7 +268,7 @@ def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup, top):
         x = 0
         for column in range(0, horizontalCount):
             x += 1
-            block = PathfindingBlock.Block(column * (blockWidth), top, blockWidth, white)
+            block = PathfindingBlock.Block(column * (blockWidth) + firstWallIndex*blockWidth, top, blockWidth, white)
             block.pos = (x,y)
             pathSpritesGroup.add(block)
         top += blockWidth
