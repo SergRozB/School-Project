@@ -5,6 +5,7 @@ import MapMaker
 import Pathfinding
 import time
 import Camera
+import UIManager
 import cProfile
 
 pygame.init()
@@ -145,10 +146,12 @@ class Player(MoveObject):
         self.inventory = []
         self.currentItem = AutoRifle
 
-        self.isShooting = False
+        self.canShoot = False
+        self.health = 100
+        self.points = 0
 
     def UseItem(self):
-        if self.currentItem.isGun and self.isShooting:
+        if self.currentItem.isGun and self.canShoot:
             self.currentItem.Use(self)
 
     def CheckControls(self):
@@ -182,6 +185,11 @@ class Player(MoveObject):
         self.angle = math.degrees(math.atan2(yDist, xDist)) + 90
         self.image = pygame.transform.rotate(self.basePlayerImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
+    
+    def TakeDamage(self, damage):
+        self.health -= damage
+        if self.health <= 0:
+            dead()
         
     def Update(self):
         """ Update the position of the player """
@@ -196,7 +204,7 @@ class Enemy(MoveObject):
     # Constructor. 
     def __init__(self, startingPos):
         # Call the parent class (Move Object) constructor
-        super().__init__(startingPos, 100)
+        super().__init__(startingPos, 200)
 
         # Create the image of the enemy
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\zombie.png").convert_alpha(), 0, 1)
@@ -206,26 +214,35 @@ class Enemy(MoveObject):
         self.hitboxRect = self.baseEnemyImage.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
-        self.closeRect = pygame.Rect(0, 0, self.hitboxRect.width*1.1, self.hitboxRect.height*1.1)
-        self.outsourcePathRect = pygame.Rect(0, 0, self.hitboxRect.width*1.5, self.hitboxRect.height*1.5)
-        self.isPathfinder = True
+        self.closeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*1.1, self.hitboxRect.height*1.1)
+        #self.outsourcePathRect = pygame.Rect(0, 0, self.hitboxRect.width*1.5, self.hitboxRect.height*1.5)
+        self.dealDamageRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*1.5, self.hitboxRect.height*1.5)
+        #self.isPathfinder = True
 
         self.target = player
-
         self.override = False # Determins wether to override pathfinding
-
         self.rootNode = None
-
         self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
-
         self.health = 30
-
+        self.damage = 10
         self.initialTime = time.time()
         self.wait = True
+        self.lastAttacked = 0
+        self.damageRate = 0.5
     
     def CheckDeath(self):
         if self.health <= 0:
+            player.points += 1
             self.kill()
+    
+    def DealDamage(self):
+        timeSince = time.time() - self.lastAttacked
+        if timeSince >= self.damageRate:
+            self.lastAttacked = time.time()
+            index = self.dealDamageRect.collidelist(zombieAttackSprites.sprites())
+            if index != -1:
+                spriteInRange = zombieAttackSprites.sprites()[index]
+                spriteInRange.TakeDamage(self.damage)
     
     def Wait(self):
         # To prevent enemy going through walls when spawning
@@ -286,8 +303,11 @@ class Enemy(MoveObject):
             self.RotateToTarget()
             self.Move(True)
             self.closeRect.center = self.hitboxRect.center
+            self.dealDamageRect.center = self.hitboxRect.center
             #pygame.draw.rect(screen, white, self.closeRect)
+            #pygame.draw.rect(screen, white, self.dealDamageRect)
             self.Separate(0.005)
+            self.DealDamage()
     
     def Separate(self, factor):
         enemyCloseList = self.closeRect.collidelistall(enemyRects)
@@ -406,6 +426,65 @@ class TestWall(pygame.sprite.Sprite):
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
 
+class WaveManager():
+    def __init__(self, enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight):
+        self.zombieCount = 0
+        self.spawnNumber = 0
+        self.spawnList = [enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight]
+        self.isDay = False   
+        self.waveCount = 0 
+        self.maxWave = 3
+
+    def NextWave(self):
+        print("next wave")
+        self.isDay = False
+        self.waveCount += 1
+        if self.waveCount == 1:
+            self.spawnNumber = 5
+        elif self.waveCount == 2:
+            self.spawnNumber = 10
+        elif self.waveCount == 3:
+            self.spawnNumber = 15
+        for spawnArea in self.spawnList:
+            self.SpawnZombies(spawnArea)
+
+    def Daytime(self, uiManager):
+        uiManager.DayUI()
+        player.health = 100
+
+    def Update(self, enemySprites, uiManager):
+        self.zombieCount = len(enemySprites)
+        if self.zombieCount == 0 and not self.isDay:
+            if self.waveCount != self.maxWave:
+                print("Turn Day")
+                self.Daytime(uiManager)
+                self.isDay = True
+            else:
+                print("You Win!")
+
+    def SpawnZombies(self, enemySpawn):
+        # Spawns a number of zombies equivalent to the 'spawn number' in
+        # the spawn areas. These spawn areas have to be initiated beforehand.
+        print("generate wave")
+        borderOffsetX = 16
+        borderOffsetY = 16
+        leftX = enemySpawn.rect.left+borderOffsetX
+        rightX = enemySpawn.rect.right-borderOffsetX
+        topY = enemySpawn.rect.top+borderOffsetY
+        bottomY = enemySpawn.rect.bottom-borderOffsetY
+        for _ in range(self.spawnNumber):
+            enemy = Enemy((random.randint(leftX, rightX), random.randint(topY, bottomY)))
+            #enemy = Enemy(random.randint(30, 31), random.randint(48, 112))
+            #enemy = Enemy((leftX, topY))
+            #print("Enemy pos:", enemy.pos, "| Enemy rect pos:", enemy.hitboxRect.center)
+            allSprites.add(enemy)
+            liveSprites.add(enemy)
+            enemySprites.add(enemy)
+            enemyRects.append(enemy.hitboxRect)
+            enemy.CreateLocalRects(allSprites)
+            enemy.pathFind.CreateLocalPathMap()
+
+
 #################### CREATE GROUPS/LISTS ####################
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
@@ -418,7 +497,8 @@ enemySprites = pygame.sprite.Group() # Group of enemy sprites.
 bullets = pygame.sprite.Group() # Group of bullet sprites to check if bullet colliding with other bullet
 noCollisionSprites = pygame.sprite.Group()
 enemyRects = [] # List of enemy rects
-
+UISprites = pygame.sprite.Group()
+zombieAttackSprites = pygame.sprite.Group()
 #################### CREATE OBJECTS ####################
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
@@ -443,10 +523,9 @@ for wall in MapMaker.wallList:
     obstacles.add(wall)
 
 player.CreateLocalRects(allSprites)
+zombieAttackSprites.add(player)
 
 background = pygame.Surface(screen.get_size())
-
-run = True
 
 pygame.time.set_timer(allowPathfinding, timeInterval)
 
@@ -455,7 +534,8 @@ print("top:", top)
 Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
 
 camera = Camera.Camera(player, (screenW, screenH))
-
+uiManager = UIManager.UIManager()
+waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight)
 #################### SPAWN ZOMBIES ####################
 borderOffsetX = 16
 borderOffsetY = 16
@@ -475,27 +555,13 @@ for _ in range(0):
     randomCoords = ((random.randint(leftX, rightX), random.randint(topY, bottomY)))
     print("coords:", randomCoords)
     allSprites.add(TestWall(randomCoords))
-
-spawnNumber = 20
-for _ in range(spawnNumber):
-    enemy = Enemy((random.randint(leftX, rightX), random.randint(topY, bottomY)))
-    #enemy = Enemy(random.randint(30, 31), random.randint(48, 112))
-    #enemy = Enemy((leftX, topY))
-    #print("Enemy pos:", enemy.pos, "| Enemy rect pos:", enemy.hitboxRect.center)
-    allSprites.add(enemy)
-    liveSprites.add(enemy)
-    enemySprites.add(enemy)
-    enemyRects.append(enemy.hitboxRect)
-    enemy.CreateLocalRects(allSprites)
-    enemy.pathFind.CreateLocalPathMap()
-
-#################### GAME LOOP ####################
+#################### MAIN GAME LOOP ####################
 def main():
     global canPathfind
     global run
     global lastTime
     global dt
-    while run:
+    while True:
         dt = time.time() - lastTime
         lastTime = time.time()
 
@@ -503,7 +569,7 @@ def main():
         canPathfind = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
+                pygame.quit()
             
             if event.type == allowPathfinding:
                 canPathfind = True
@@ -511,16 +577,17 @@ def main():
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 #print("Mpos:", pygame.mouse.get_pos())
-                player.isShooting = True
+                player.canShoot = True
+                uiManager.mouseButtonPressed = True
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                player.isShooting = False
+                player.canShoot = False
+                uiManager.mouseButtonPressed = False
 
         for sprite in liveSprites:
             sprite.Update()
             #print("name:", type(sprite).__name__)
             #cProfile.runctx('sprite.Update()', globals(), locals(), sort='cumtime')
             #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
-        
         camera.scroll()
         for sprite in allSprites:
             drawnRect = sprite.rect.copy()
@@ -535,20 +602,36 @@ def main():
             #drawnRect.height = sprite.rect.height * zoomLevel
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
-        for sprite in showPathSprites:
-            drawnRect = sprite.rect.copy()
-            drawnRect.width = sprite.rect.width * zoomLevel
-            drawnRect.height = sprite.rect.height * zoomLevel
-            screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+        #for sprite in showPathSprites:
+            #drawnRect = sprite.rect.copy()
+            #drawnRect.width = sprite.rect.width * zoomLevel
+            #drawnRect.height = sprite.rect.height * zoomLevel
+            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
             
         #for sprite in pathSprites:
             #drawnRect = sprite.rect.copy()
             #drawnRect.width = sprite.rect.width * zoomLevel
             #drawnRect.height = sprite.rect.height * zoomLevel
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-        
+        waveManager.Update(enemySprites, uiManager)
+        uiManager.Update(screen, waveManager, player)
         pygame.display.update()
         clock.tick(60)
+#################### DEATH GAME LOOP ####################
+def dead():
+    pygame.display.set_caption("Ded")
+    global dt
+    global lastTime
+    while True:
+        screen.fill("black")
+        dt = time.time() - lastTime
+        lastTime = time.time()
+
+        screen.fill(black)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+        pygame.display.update()
 main()
 #cProfile.runctx('Enemy.Update()', globals(), locals())
 pygame.quit()

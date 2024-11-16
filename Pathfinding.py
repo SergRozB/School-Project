@@ -41,33 +41,31 @@ class Pathfinding():
         neighbours = []
         for pos in neighboursPos:
             # Checks if the position exists
-            if self.FindCellInfo(pos, 'exists'):
+            if self.FindCellInfo(pos, 'exists') and not self.FindCellInfo(pos, 'hasObstacle') and pos not in processedList:
 
                 if self.FindCellInfo(pos, 'isTarget'): # Checks if the target cell is a neighbour
                     if self.CheckIfDiagonal(pos, sourcePos) == False: # Checks if the target cell is at a diagonal distance from the source 
                         self.SetCellInfo(pos, 'parent', sourcePos)
                         return -1 # Returns -1, signifying that the target cell was found
                 
-                elif not self.FindCellInfo(pos, 'hasObstacle') and pos not in processedList:
+                else:
                     costToN = self.FindCellInfo(sourcePos, 'g') + self.GetDist(sourcePos, pos) # The g cost from the source cell
                     
-                    if self.CheckIfDiagonal(pos, sourcePos) and self.FindCellInfo(pos, 'nextToWall') == True:
-                        costToN += 1000
+                    if not self.CheckIfDiagonal(pos, sourcePos) or not self.FindCellInfo(pos, 'nextToWall'):
+                        if pos not in cellsToSearch or costToN < self.FindCellInfo(pos, 'g'):
+                            self.SetCellInfo(pos, 'g', costToN)
+                            self.SetCellInfo(pos, 'parent', sourcePos)
 
-                    if pos not in cellsToSearch or costToN < self.FindCellInfo(pos, 'g'):
-                        self.SetCellInfo(pos, 'g', costToN)
-                        self.SetCellInfo(pos, 'parent', sourcePos)
-
-                        if pos not in cellsToSearch:
-                            cellH = self.GetDist(pos, endPos)
-                            cellF = cellH + costToN
-                            self.SetCellInfo(pos, 'h', cellH)
-                            cellsToSearch.append(pos) 
-                            if self.rootToSearchNode != None:
-                                self.rootToSearchNode.Insert(cellF, pos)
-                            else:
-                                self.rootToSearchNode = BinaryTree.TreeNode(cellF, pos, None, None)
-                    neighbours.append(pos)
+                            if pos not in cellsToSearch:
+                                cellH = self.GetDist(pos, endPos)
+                                cellF = cellH + costToN
+                                self.SetCellInfo(pos, 'h', cellH)
+                                cellsToSearch.append(pos) 
+                                if self.rootToSearchNode != None:
+                                    self.rootToSearchNode.Insert(cellF, pos)
+                                else:
+                                    self.rootToSearchNode = BinaryTree.TreeNode(cellF, pos, None, None)
+                        neighbours.append(pos)
         return neighbours
     
     def CheckIfDiagonal(self, pos, sourcePos):

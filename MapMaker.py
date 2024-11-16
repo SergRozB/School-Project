@@ -19,9 +19,9 @@ map = """WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
      W   W                                           W   W
      W   W                                           W   W
      W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
+     W                                                   W
+     W                                                   W
+     W                                                   W
      W   W                                           W   W
      W   W                                           W   W
      W   W                                           W   W
@@ -35,7 +35,7 @@ map = """WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
      WWWWW                                           WWWWW
          W                                           W
          W                                           W
-         WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW                                         
+         WWWWWWWWWWWWWWWWWWWW   WWWWWWWWWWWWWWWWWWWWWW                                         
          W                                           W
          W                                           W
          W                                           W                                   
