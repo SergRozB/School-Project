@@ -149,14 +149,12 @@ class Pathfinding():
             return "no pos"
         y = pos[1]
         x = pos[0]
-        #for i in range(self.verticalCount):
         #print("|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "| vertical:", self.verticalCount, "|pos wanted:", pos)
         #print("len:", len(self.localPathMap))
         calculatedIndex = (y-1)*self.horizontalCount + x-1
         if calculatedIndex > len(self.localPathMap) and wanted == 'exists':
             return False
         cell = self.localPathMap[calculatedIndex]
-        #print("cell pos:", cell[0],"|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "|pos wanted:", pos, "Y:", y)
         if cell[0] == pos:
             if wanted == 'g':
                 return cell[1][0]
@@ -228,10 +226,13 @@ class Pathfinding():
                     item[1][i] = False
     
     def GetCell(self, pos):
-        for cell in self.pathSprites:
-            if pos == cell.pos:
-                return cell
-        return 'no cell found'
+        x = pos[0]
+        y = pos[1]
+        calculatedIndex = (y-1)*self.horizontalCount + x-1
+        if calculatedIndex <= len(self.pathSprites):
+            return self.pathSprites.sprites()[calculatedIndex]
+        else:
+            return 'no cell found'
 
     def FixEdges(self):
         for i in self.localPathMap:

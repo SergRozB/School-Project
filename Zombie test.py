@@ -2,7 +2,7 @@ import pygame
 import math
 import random
 import MapMaker
-import Pathfinding
+import VectorFieldPathfinding
 import time
 import Camera
 import UIManager
@@ -222,7 +222,6 @@ class Enemy(MoveObject):
         self.target = player
         self.override = False # Determins wether to override pathfinding
         self.rootNode = None
-        self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
         self.health = 30
         self.damage = 10
         self.initialTime = time.time()
@@ -283,7 +282,14 @@ class Enemy(MoveObject):
             self.target = self.pathFind.path[0]
             if self.hitboxRect.colliderect(self.pathFind.path[0].rect):
                 self.pathFind.path.remove(self.pathFind.path[0]) 
-                self.target = self.pathFind.path[0]   
+                self.target = self.pathFind.path[0] 
+
+    def SetDirection(self):
+        # Gets the direction the enemy needs to go in according to the pathfinder
+        # Must run before move function
+        direction = pathFindPlayer.GetDirection(self.hitboxRect)
+        pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.direction.x , self.pos.y + self.direction.y ))
+        self.direction = direction
 
     def Update(self):
         if self.wait:
@@ -292,15 +298,8 @@ class Enemy(MoveObject):
             self.oldRect = self.hitboxRect.copy()
             """ Update the position of the enemy """
             self.CheckDeath()
-            if canPathfind:
-                self.pathFind.Pathfind(self.hitboxRect, player.hitboxRect)
-                #print("inside")
-                #cProfile.runctx('self.pathFind.Pathfind(self.hitboxRect, player.hitboxRect)', globals(), locals(), sort='cumtime')
-                self.override = self.pathFind.override
-
-            if len(self.pathFind.path) > 0:
-                self.FollowPath()
             self.RotateToTarget()
+            self.SetDirection()
             self.Move(True)
             self.closeRect.center = self.hitboxRect.center
             self.dealDamageRect.center = self.hitboxRect.center
@@ -440,7 +439,7 @@ class WaveManager():
         self.isDay = False
         self.waveCount += 1
         if self.waveCount == 1:
-            self.spawnNumber = 5
+            self.spawnNumber = 1
         elif self.waveCount == 2:
             self.spawnNumber = 10
         elif self.waveCount == 3:
@@ -482,7 +481,6 @@ class WaveManager():
             enemySprites.add(enemy)
             enemyRects.append(enemy.hitboxRect)
             enemy.CreateLocalRects(allSprites)
-            enemy.pathFind.CreateLocalPathMap()
 
 
 #################### CREATE GROUPS/LISTS ####################
@@ -530,8 +528,9 @@ background = pygame.Surface(screen.get_size())
 pygame.time.set_timer(allowPathfinding, timeInterval)
 
 lastTime = time.time()
-print("top:", top)
-Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
+VectorFieldPathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
+pathFindPlayer = VectorFieldPathfinding.VectorFieldPathfinding((horizontalCount, verticalCount), player.hitboxRect, pathSprites)
+pathFindPlayer.CreateLocalPathMap()
 
 camera = Camera.Camera(player, (screenW, screenH))
 uiManager = UIManager.UIManager()
@@ -564,16 +563,11 @@ def main():
     while True:
         dt = time.time() - lastTime
         lastTime = time.time()
-
+        pathFindPlayer.CreateMap()
         screen.fill(black)
-        canPathfind = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-            
-            if event.type == allowPathfinding:
-                canPathfind = True
-                showPathSprites.empty()
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 #print("Mpos:", pygame.mouse.get_pos())
@@ -601,18 +595,7 @@ def main():
             #drawnRect.width = sprite.rect.width * zoomLevel
             #drawnRect.height = sprite.rect.height * zoomLevel
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-
-        #for sprite in showPathSprites:
-            #drawnRect = sprite.rect.copy()
-            #drawnRect.width = sprite.rect.width * zoomLevel
-            #drawnRect.height = sprite.rect.height * zoomLevel
-            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-            
-        #for sprite in pathSprites:
-            #drawnRect = sprite.rect.copy()
-            #drawnRect.width = sprite.rect.width * zoomLevel
-            #drawnRect.height = sprite.rect.height * zoomLevel
-            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+        pathFindPlayer.CleanPath()
         waveManager.Update(enemySprites, uiManager)
         uiManager.Update(screen, waveManager, player)
         pygame.display.update()
