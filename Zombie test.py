@@ -536,7 +536,7 @@ camera = Camera.Camera(player, (screenW, screenH))
 uiManager = UIManager.UIManager()
 waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight)
 
-lastTimeOther = 0
+lastTimeSincePath = 0
 #################### SPAWN ZOMBIES ####################
 
 borderOffsetX = 16
@@ -564,11 +564,16 @@ def main():
     global run
     global lastTime
     global dt
+    global lastTimeSincePath
     while True:
         dt = time.time() - lastTime
         lastTime = time.time()
-        pathFindPlayer.CreateMap()
-        timeSince = time.time() - lastTime
+        timeSincePath = time.time() - lastTimeSincePath
+        if timeSincePath >= 0.5:
+            #print("time:", timeSincePath)
+            pathFindPlayer.CreateMap()
+            cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='cumtime')
+            lastTimeSincePath = time.time()
         screen.fill(black)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
