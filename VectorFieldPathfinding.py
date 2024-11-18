@@ -16,19 +16,28 @@ class VectorFieldPathfinding():
             self.pathRectList.append(cell.rect)
 
     def CreateMap(self):
-        self.targetPos = self.GetRectCellPos(self.targetRect)
-        self.GenerateHeatMap(self.targetPos)
-        self.GenerateVectorField()
+        targetCell = self.GetCell(self.GetRectCellPos(self.targetRect))
+        if targetCell:
+            self.GenerateHeatMap(targetCell)
+            self.GenerateVectorField()
+        else:
+            print("ERROR: NO NODE DETECTED - CREATE MAP FUNC")
 
     def GetDirection(self, rect):
+        # Returns direction vector of node rect is colliding with
         startPos = self.GetRectCellPos(rect)
-        vector = self.FindCellInfo(startPos, "vector")
-        return vector
+        node = self.GetCell(startPos)
+        if node:
+            return node.vector
+        else:
+            print("ERROR: NO NODE ON RECT")
 
-    def GetNeighbours(self, sourcePos):
+    def GetNeighbours(self, sourceNode):
         # Takes the position of the source cell
         # Gets the neighbour objects of the said cell and returns them. 
         # In the above case, the returned list also contains the target cell.
+        #print("source node:", sourceNode)
+        sourcePos = sourceNode.pos
         northNPos = (sourcePos[0], sourcePos[1] - 1)
         northWestNPos = (sourcePos[0] + 1, sourcePos[1] - 1)
         westNPos = (sourcePos[0] + 1, sourcePos[1])
@@ -41,13 +50,15 @@ class VectorFieldPathfinding():
         neighbours = []
         for pos in neighboursPos:
             # Checks if the position exists
-            if self.FindCellInfo(pos, 'exists'):
-                neighbours.append(pos)
+            node = self.GetCell(pos)
+            if node:
+                neighbours.append(node)
         return neighbours
     
-    def GetHorzVertNeighbours(self, sourcePos):
+    def GetHorzVertNeighbours(self, sourceNode):
         # Same as get neighbours but only 
         # horizontal and vertical neighbours
+        sourcePos = sourceNode.pos
         northNPos = (sourcePos[0], sourcePos[1] - 1)
         westNPos = (sourcePos[0] + 1, sourcePos[1])
         southNPos = (sourcePos[0], sourcePos[1] + 1)
@@ -55,72 +66,63 @@ class VectorFieldPathfinding():
         neighboursPos = [northNPos, southNPos, eastNPos, westNPos]
         neighbours = []
         for pos in neighboursPos:
-            # Checks if the position exists
-            if not self.FindCellInfo(pos, 'exists'):
-                pos = False
-            neighbours.append(pos)
+            # Adds position regardless if it exists. 
+            # Stored as 'False' in list if doesn't exist.
+            neighbours.append(self.GetCell(pos))
         return neighbours
 
-    def GenerateHeatMap(self, endPos):
-        openList = [endPos]
-        currentPos = endPos
-        neighbourNodes = self.GetNeighbours(endPos)
+    def GenerateHeatMap(self, endNode):
+        openList = [endNode]
+        currentNode = endNode
+        neighbourNodes = self.GetNeighbours(endNode)
         while len(openList) > 0: 
-            #print("current pos:", currentPos, "| len open list:", len(openList))
-            for pos in neighbourNodes:
-                if not self.FindCellInfo(pos, "hasObstacle") and pos not in openList:
-                    nextToWall = self.FindCellInfo(pos, "nextToWall")
-                    distFromTarget = self.GetDist(pos, endPos) + self.GetDist(pos, currentPos)
-                    if self.FindCellInfo(pos, "visited"):
-                        if distFromTarget < self.FindCellInfo(pos, "distToTarget"):
-                            self.SetCellInfo(currentPos, "distToTarget", distFromTarget)
+            for node in neighbourNodes:
+                if not node.hasObstacle and node not in openList:
+                    distFromTarget = self.GetDist(currentNode.pos, endNode.pos) + self.GetDist(node.pos, currentNode.pos)
+                    if node.visited:
+                        if distFromTarget < node.distToTarget:
+                            node.distToTarget = distFromTarget
                     else:
-                        self.SetCellInfo(currentPos, "distToTarget", distFromTarget)
-                        self.SetCellInfo(currentPos, "visited", True)
-                        openList.append(pos)
-            openList.remove(currentPos)
+                        node.distToTarget = distFromTarget
+                        node.visited = True
+                        openList.append(node)
+            openList.remove(currentNode)
             if len(openList) > 0:
-                currentPos = openList[0]
-                neighbourNodes = self.GetNeighbours(currentPos)
+                currentNode = openList[0]
+                neighbourNodes = self.GetNeighbours(currentNode)
     
     def GenerateVectorField(self):
-        for pos in self.posList:
+        for node in self.pathSprites.sprites():
             #print("pos:", pos)
-            horzVertNeighbours = self.GetHorzVertNeighbours(pos)
-            upPos, downPos, rightPos, leftPos = horzVertNeighbours
+            horzVertNeighbours = self.GetHorzVertNeighbours(node)
+            upNode, downNode, rightNode, leftNode = horzVertNeighbours
             #print("left:", self.FindCellInfo(leftPos, "distToTarget"))
             #print("right:", self.FindCellInfo(rightPos, "distToTarget"))
-            if leftPos == False or rightPos == False:
-                newVectorX = self.FindCellInfo(pos, "distToTarget")
+            if leftNode == False or rightNode == False:
+                newVectorX = node.distToTarget
             else:
-                newVectorX = self.FindCellInfo(leftPos, "distToTarget") - self.FindCellInfo(rightPos, "distToTarget")
-            if upPos == False or downPos == False:
-                newVectorY = self.FindCellInfo(pos, "distToTarget")
+                newVectorX = leftNode.distToTarget - rightNode.distToTarget
+            if upNode == False or downNode == False:
+                newVectorY = node.distToTarget
             else:
-                newVectorY = self.FindCellInfo(upPos, "distToTarget") - self.FindCellInfo(downPos, "distToTarget")
+                newVectorY = upNode.distToTarget - downNode.distToTarget
             #print("new vector:", (newVectorX, newVectorY))
-            self.SetCellInfo(pos, "vector", pygame.math.Vector2(newVectorX, newVectorY))
-    
-    def CreateLocalPathMap(self):
-        self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
-        self.posList = []
-        for sprite in self.pathSprites:
-            self.localPathMap.append([sprite.pos, [sprite.distToTarget, sprite.nextToWall, sprite.hasObstacle, sprite.visited, sprite.vector]])
-            self.posList.append(sprite.pos)
-        self.FixEdges()
+            if pygame.math.Vector2(newVectorX, newVectorY).magnitude() != 0:
+                node.vector = pygame.math.Vector2(newVectorX, newVectorY).normalize()
+            else:
+                node.vector = pygame.math.Vector2(newVectorX, newVectorY)
     
     def FixEdges(self):
-        for i in self.localPathMap:
-            position = i[0]
-            if self.FindCellInfo(position, 'hasObstacle'):
+        for node in self.pathSprites.sprites():
+            if node.hasObstacle:
+                position = node.pos
                 horizontalNPos = [(position[0] + 1, position[1]), (position[0], position[1] + 1), (position[0] - 1, position[1]), (position[0], position[1] - 1)]
                 for pos in horizontalNPos:
-                    if self.FindCellInfo(pos, 'exists'):
-                        self.SetCellInfo(pos, 'nextToWall', True)
-                        cellObject = self.GetCell(pos)
-                        if type(cellObject) != str:
-                            if not cellObject.hasObstacle:
-                                cellObject.changeColour(purple)
+                    neighbourNode = self.GetCell(pos)
+                    if neighbourNode:
+                        neighbourNode.nextToWall = True
+                        if not neighbourNode.hasObstacle:
+                            neighbourNode.changeColour(purple)
     
     def GetDist(self, startPos, targetPos):
         changeY = abs(startPos[1] - targetPos[1]) 
@@ -139,73 +141,26 @@ class VectorFieldPathfinding():
             if not cell.hasObstacle:
                 return cell.pos
     
-    def FindCellInfo(self, pos, wanted):
-        # Finds cell information from local path map
-        if pos == -1 or type(pos) == str:
-            print("ERROR: bad pos")
-            return "no pos"
-        y = pos[1]
-        x = pos[0]
-        #print("|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "| vertical:", self.verticalCount, "|pos wanted:", pos)
-        #print("len:", len(self.localPathMap))
-        calculatedIndex = (y-1)*self.horizontalCount + x-1
-        #print("index:", calculatedIndex, "| len:", len(self.localPathMap))
-        if calculatedIndex >= len(self.localPathMap) and wanted == 'exists':
-            return False
-        cell = self.localPathMap[calculatedIndex]
-        if cell[0] == pos:
-            if wanted == 'distToTarget':
-                return cell[1][0]
-            if wanted == 'nextToWall':
-                return cell[1][1]
-            if wanted == 'hasObstacle':
-                return cell[1][2]
-            if wanted == 'visited':
-                return cell[1][3]
-            if wanted == 'vector':
-                return cell[1][4]
-            if wanted == 'exists':
-                return True
-        if cell[0] != pos:
-            if wanted == 'exists':
-                return False
-        return 'not found' 
-                
-    def SetCellInfo(self, pos, wanted, change):
-        # Changes cell information from local path map
-        if pos == -1 or type(pos) == str:
-            print("ERROR: bad pos")
-            return "no pos"
-        y = pos[1]
-        x = pos[0]
-        cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
-        if cell[0] == pos:
-            if wanted == 'distToTarget':
-                cell[1][0] = change
-            if wanted == 'nextToWall':
-                cell[1][1] = change
-            if wanted == 'hasObstacle':
-                cell[1][2] = change
-            if wanted == 'visited':
-                cell[1][3] = change
-            if wanted == 'vector':
-                cell[1][4] = change
-    
     def CleanPath(self):
         # Wipes information from the local path map for the next pathfind
-        for item in self.localPathMap:
-            item[1][0] = 0
-            item[1][3] = False
-            item[1][4] = pygame.math.Vector2(0,0)
+        for node in self.pathSprites.sprites():
+            node.visited = False
     
     def GetCell(self, pos):
+        # Returns the cell object from a position
         x = pos[0]
         y = pos[1]
         calculatedIndex = (y-1)*self.horizontalCount + x-1
-        if calculatedIndex <= len(self.pathSprites):
+        if calculatedIndex < len(self.pathSprites):
             return self.pathSprites.sprites()[calculatedIndex]
         else:
-            return 'no cell found'
+            return False
+    
+    def DrawVectors(self, screen, camera):
+        for node in self.pathSprites:
+            nodePosX = (node.rect.centerx - camera.offset.x) * camera.zoomLevel
+            nodePosY = (node.rect.centery - camera.offset.y) * camera.zoomLevel
+            pygame.draw.line(screen, 'green', (nodePosX, nodePosY), (nodePosX + node.vector.x * 10 , nodePosY + node.vector.y* 10))
         
 def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup, top, firstWallIndex):
     # Needs to be used before pathfinding method

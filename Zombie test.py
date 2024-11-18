@@ -530,12 +530,15 @@ pygame.time.set_timer(allowPathfinding, timeInterval)
 lastTime = time.time()
 VectorFieldPathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
 pathFindPlayer = VectorFieldPathfinding.VectorFieldPathfinding((horizontalCount, verticalCount), player.hitboxRect, pathSprites)
-pathFindPlayer.CreateLocalPathMap()
+pathFindPlayer.FixEdges()
 
 camera = Camera.Camera(player, (screenW, screenH))
 uiManager = UIManager.UIManager()
 waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight)
+
+lastTimeOther = 0
 #################### SPAWN ZOMBIES ####################
+
 borderOffsetX = 16
 borderOffsetY = 16
 print("BROL:", enemySpawnTop.rect.left, "| BROR:", enemySpawnTop.rect.right)
@@ -554,9 +557,10 @@ for _ in range(0):
     randomCoords = ((random.randint(leftX, rightX), random.randint(topY, bottomY)))
     print("coords:", randomCoords)
     allSprites.add(TestWall(randomCoords))
+
 #################### MAIN GAME LOOP ####################
+
 def main():
-    global canPathfind
     global run
     global lastTime
     global dt
@@ -564,6 +568,7 @@ def main():
         dt = time.time() - lastTime
         lastTime = time.time()
         pathFindPlayer.CreateMap()
+        timeSince = time.time() - lastTime
         screen.fill(black)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -589,12 +594,13 @@ def main():
             drawnRect.height = sprite.rect.height * zoomLevel
             screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
             #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
-        
+
         #for sprite in noCollisionSprites:
             #drawnRect = sprite.rect.copy()
             #drawnRect.width = sprite.rect.width * zoomLevel
             #drawnRect.height = sprite.rect.height * zoomLevel
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+        #pathFindPlayer.DrawVectors(screen, camera)    
         pathFindPlayer.CleanPath()
         waveManager.Update(enemySprites, uiManager)
         uiManager.Update(screen, waveManager, player)
