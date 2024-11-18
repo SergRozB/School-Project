@@ -92,9 +92,7 @@ class VectorFieldPathfinding():
                 neighbourNodes = self.GetNeighbours(currentNode)
     
     def GenerateVectorField(self):
-        count = 0
         for node in self.pathSprites.sprites():
-            count += 1
             #print("count:", count, "| len:", len(self.pathSprites.sprites()), "|horz vert:",(self.horizontalCount, self.verticalCount))
             #print("pos:", pos)
             horzVertNeighbours = self.GetHorzVertNeighbours(node)
@@ -154,6 +152,7 @@ class VectorFieldPathfinding():
         x = pos[0]
         y = pos[1]
         calculatedIndex = (y-1)*self.horizontalCount + x-1
+        #print("calc:", calculatedIndex)
         if calculatedIndex < len(self.pathSprites):
             return self.pathSprites.sprites()[calculatedIndex]
         else:
