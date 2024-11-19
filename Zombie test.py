@@ -530,7 +530,7 @@ pygame.time.set_timer(allowPathfinding, timeInterval)
 lastTime = time.time()
 VectorFieldPathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
 pathFindPlayer = VectorFieldPathfinding.VectorFieldPathfinding((horizontalCount, verticalCount), player.hitboxRect, pathSprites)
-pathFindPlayer.FixEdges()
+pathFindPlayer.CreateLocalPathMap()
 
 camera = Camera.Camera(player, (screenW, screenH))
 uiManager = UIManager.UIManager()
@@ -572,7 +572,7 @@ def main():
         if timeSincePath >= 0.5:
             #print("time:", timeSincePath)
             pathFindPlayer.CreateMap()
-            cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='cumtime')
+            #cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='cumtime')
             lastTimeSincePath = time.time()
         screen.fill(black)
         for event in pygame.event.get():
@@ -597,15 +597,23 @@ def main():
             drawnRect = sprite.rect.copy()
             drawnRect.width = sprite.rect.width * zoomLevel
             drawnRect.height = sprite.rect.height * zoomLevel
-            screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+            screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
+                        ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
             #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+        
+        #for sprite in pathSprites:
+            #drawnRect = sprite.rect.copy()
+            #drawnRect.width = sprite.rect.width * zoomLevel
+            #drawnRect.height = sprite.rect.height * zoomLevel
+            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
+                        #((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
         #for sprite in noCollisionSprites:
             #drawnRect = sprite.rect.copy()
             #drawnRect.width = sprite.rect.width * zoomLevel
             #drawnRect.height = sprite.rect.height * zoomLevel
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-        #pathFindPlayer.DrawVectors(screen, camera)    
+        pathFindPlayer.DrawVectorMap(screen, camera)    
         pathFindPlayer.CleanPath()
         waveManager.Update(enemySprites, uiManager)
         uiManager.Update(screen, waveManager, player)
