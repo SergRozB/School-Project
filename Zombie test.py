@@ -131,7 +131,7 @@ class Player(MoveObject):
     # Constructor. 
     def __init__(self, startingPosition):
         # Call the parent class (Sprite) constructor
-        super().__init__(startingPosition, 800)
+        super().__init__(startingPosition, 500)
  
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
@@ -212,6 +212,7 @@ class Enemy(MoveObject):
 
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.baseEnemyImage.get_rect(center = self.pos)
+        self.hitboxRect.inflate(-2, -2)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
         self.closeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*1.1, self.hitboxRect.height*1.1)

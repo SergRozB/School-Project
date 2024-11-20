@@ -77,6 +77,8 @@ class VectorFieldPathfinding():
                     distToCurrent = self.GetDist(currentPos, pos)
                     #print("currentpos:", currentPos, "| pos:", pos, "| get dist:", distToCurrent)
                     distFromTarget = currentPosDist + distToCurrent
+                    if distToCurrent == 14 and self.FindCellInfo(pos, "nextToWall") and self.FindCellInfo(currentPos, "nextToWall"):
+                        distFromTarget += 1000
                     if self.FindCellInfo(pos, "visited"):
                         if distFromTarget < self.FindCellInfo(pos, "distToTarget"):
                             self.SetCellInfo(pos, "distToTarget", distFromTarget)
