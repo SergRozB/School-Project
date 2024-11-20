@@ -131,7 +131,7 @@ class Player(MoveObject):
     # Constructor. 
     def __init__(self, startingPosition):
         # Call the parent class (Sprite) constructor
-        super().__init__(startingPosition, 400)
+        super().__init__(startingPosition, 800)
  
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
@@ -147,7 +147,7 @@ class Player(MoveObject):
         self.currentItem = AutoRifle
 
         self.canShoot = False
-        self.health = 100
+        self.health = 10000000000
         self.points = 0
 
     def UseItem(self):
@@ -223,7 +223,7 @@ class Enemy(MoveObject):
         self.override = False # Determins wether to override pathfinding
         self.rootNode = None
         self.health = 30
-        self.damage = 10
+        self.damage = 0
         self.initialTime = time.time()
         self.wait = True
         self.lastAttacked = 0
@@ -288,7 +288,7 @@ class Enemy(MoveObject):
         # Gets the direction the enemy needs to go in according to the pathfinder
         # Must run before move function
         direction = pathFindPlayer.GetDirection(self.hitboxRect)
-        pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.direction.x , self.pos.y + self.direction.y ))
+        #pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.direction.x , self.pos.y + self.direction.y ))
         self.direction = direction
 
     def Update(self):
@@ -613,8 +613,8 @@ def main():
             #drawnRect.width = sprite.rect.width * zoomLevel
             #drawnRect.height = sprite.rect.height * zoomLevel
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-        pathFindPlayer.DrawVectorMap(screen, camera)    
-        pathFindPlayer.CleanPath()
+        #pathFindPlayer.DrawVectorMap(screen, camera)    
+        #pathFindPlayer.DrawHeatMap(screen, camera)
         waveManager.Update(enemySprites, uiManager)
         uiManager.Update(screen, waveManager, player)
         pygame.display.update()
