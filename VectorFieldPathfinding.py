@@ -99,16 +99,20 @@ class VectorFieldPathfinding():
                 upPos, downPos, rightPos, leftPos = horzVertNeighbours
                 #print("left:", self.FindCellInfo(leftPos, "distToTarget"))
                 #print("right:", self.FindCellInfo(rightPos, "distToTarget"))
-                if rightPos == False:
+                if rightPos == False and leftPos != False:
                     newVectorX = self.FindCellInfo(pos, "distToTarget") - self.FindCellInfo(leftPos, "distToTarget")
-                elif leftPos == False:
+                elif leftPos == False and rightPos != False:
                     newVectorX = self.FindCellInfo(rightPos, "distToTarget") - self.FindCellInfo(pos, "distToTarget")
+                elif leftPos == False and rightPos == False:
+                    newVectorX = 0
                 else:
                     newVectorX = self.FindCellInfo(rightPos, "distToTarget") - self.FindCellInfo(leftPos, "distToTarget")
-                if upPos == False:
+                if upPos == False and downPos != False:
                     newVectorY = self.FindCellInfo(pos, "distToTarget") - self.FindCellInfo(downPos, "distToTarget")
-                elif downPos == False:
+                elif downPos == False and upPos != False:
                     newVectorY = self.FindCellInfo(upPos, "distToTarget") - self.FindCellInfo(pos, "distToTarget")
+                elif downPos == False and upPos == False:
+                    newVectorY = 0
                 else:
                     newVectorY = self.FindCellInfo(upPos, "distToTarget") - self.FindCellInfo(downPos, "distToTarget")
                 #print("new vector:", (newVectorX, newVectorY))

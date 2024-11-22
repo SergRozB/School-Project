@@ -27,6 +27,8 @@ for line in MapMaker.map:
     if currentFirstOccurence < firstOccurrence:
         firstOccurrence = currentFirstOccurence
 
+print("first occurence:", firstOccurrence, "| current wdth:", currentWidth)
+
 topSpawnPoint = (100, 50)
 top = 0
 
@@ -224,7 +226,7 @@ class Enemy(MoveObject):
         self.override = False # Determins wether to override pathfinding
         self.rootNode = None
         self.health = 30
-        self.damage = 0
+        self.damage = 10
         self.initialTime = time.time()
         self.wait = True
         self.lastAttacked = 0
@@ -353,7 +355,7 @@ class RangedWeapon():
                 self.totalAmmo = 0
     
     def Shoot(self, user):
-        Bullet(user.pos, 800, self.damage, user.lookDirection)
+        Bullet(user.pos, 1000, self.damage, user.lookDirection)
 
 class Bullet(MoveObject):
     def __init__(self, startingPos, speed, damage, direction):
@@ -409,7 +411,7 @@ class Bullet(MoveObject):
         self.Move(False)
         self.CheckCollision()
 
-class enemySpawnTopArea(pygame.sprite.Sprite):
+class enemySpawnArea(pygame.sprite.Sprite):
     def __init__(self, pos, dimensions):
         super().__init__()
         self.image = pygame.Surface(dimensions)
@@ -483,6 +485,29 @@ class WaveManager():
             enemyRects.append(enemy.hitboxRect)
             enemy.CreateLocalRects(allSprites)
 
+class MeleeWeapon():
+    def __init__(self, attackRange, attackSpeed, damage):
+        self.attackRange = attackRange
+        self.attackSpeed = attackSpeed
+        self.damage = damage
+        self.rangeRect = pygame.rect.Rect(0, 0, 32, attackRange)
+        self.lastUsed = 0
+    
+    def Use(self, user):
+        # Function called when the weapon is used
+        timeSince = time.time() - self.lastUsed
+        if timeSince >= self.attackSpeed:
+            print("USED!")
+            self.lastUsed = time.time()
+            self.Attack(user)
+    
+    def Attack(self, user):
+        # Deals damage to the zombie colliding with the rect
+        # of the weapon
+        self.rangeRect.center = user.hitboxRect.center
+        index = self.rangeRect.collidelist(enemyRects)
+        zombie = enemyRects[index]
+        zombie.health -= self.damage
 
 #################### CREATE GROUPS/LISTS ####################
 
@@ -497,15 +522,16 @@ bullets = pygame.sprite.Group() # Group of bullet sprites to check if bullet col
 noCollisionSprites = pygame.sprite.Group()
 enemyRects = [] # List of enemy rects
 UISprites = pygame.sprite.Group()
-zombieAttackSprites = pygame.sprite.Group()
+zombieAttackSprites = pygame.sprite.Group() # Group of sprites the zombies will attack
 #################### CREATE OBJECTS ####################
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
-player = Player((150, 350))
-enemySpawnTop = enemySpawnTopArea((32, 32), (43*32, 3*32))
-enemySpawnLeft = enemySpawnTopArea((32*-3, 32*8), (3*32, 22*32))
-enemySpawnRight = enemySpawnTopArea((32*45, 32*8), (3*32, 22*32))
-enemySpawnBottom = enemySpawnTopArea((32, 32*34), (43*32, 3*32))
+Axe = MeleeWeapon(3, 0.6, 50)
+player = Player((850, 850))
+enemySpawnTop = enemySpawnArea((32, 32), (43*32, 3*32))
+enemySpawnLeft = enemySpawnArea((32*-3, 32*8), (3*32, 22*32))
+enemySpawnRight = enemySpawnArea((32*45, 32*8), (3*32, 22*32))
+enemySpawnBottom = enemySpawnArea((32, 32*34), (43*32, 3*32))
 
 #################### SETUP ####################
 
@@ -616,6 +642,12 @@ def main():
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         #pathFindPlayer.DrawVectorMap(screen, camera)    
         #pathFindPlayer.DrawHeatMap(screen, camera)
+        axeRect = pygame.rect.Rect(0, 0, 32, Axe.attackRange)
+        axeRect.width = axeRect.width * zoomLevel
+        axeRect.height = axeRect.height * zoomLevel
+        #axeRect.center = ((player.hitboxRect.centerx - camera.offset.x) * zoomLevel, (player.hitboxRect.centery - camera.offset.y) * zoomLevel)
+        axeRect.topleft = ((player.rect.topleft[0] - camera.offset.x) * zoomLevel, (player.rect.topleft[1] - camera.offset.y) * zoomLevel)
+        pygame.draw.rect(screen, "green", axeRect)
         waveManager.Update(enemySprites, uiManager)
         uiManager.Update(screen, waveManager, player)
         pygame.display.update()

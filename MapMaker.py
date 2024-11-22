@@ -2,44 +2,63 @@ import pygame
 import Camera
 
 white = (255, 255, 255)
-map = """WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW    
-         W                                           W     
-         W                                           W
-         W                                           W
-         WWWWWWWWWWWWWWWWWWW   WWWWWWWWWWWWWWWWWWWWWWW                       
-         W                                           W        
-         W                                           W        
-     WWWWW                                           WWWWW       
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W   
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W                                                   W
-     W                                                   W
-     W                                                   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W 
-     W   W                                           W   W
-     W   W                                           W   W
-     W   W                                           W   W
-     WWWWW                                           WWWWW
-         W                                           W
-         W                                           W
-         WWWWWWWWWWWWWWWWWWWW   WWWWWWWWWWWWWWWWWWWWWW                                         
-         W                                           W
-         W                                           W
-         W                                           W                                   
-         WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"""
+map = """WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+         W                                                             W    
+         W                                                             W     
+         W                                                             W
+         W                                                             W
+         WWWW   WWWWWWWWWWWWWWWWWWWWW   WWWWWWWWWWWWWWWWWWWWWWWW   WWWWW                     
+         W                                                             W        
+         W                                                             W        
+         W                                                             W
+    WWWWWW           WWWWWWWWW   WWWWWWWWWWWWWWWW   WWWWWWWW           WWWWWW
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W                                                                  W    W    
+    W                                                                  W    W
+    W                                                                  W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W       WWW                                                   W    W
+    W    W       WWW                                                   W    W
+    W    W       WWW                                                   W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W                                                                       W  
+    W                                                                       W
+    W                                                                       W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W                                                                       W
+    W                                                                       W
+    W                                                                       W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    W    W                                                             W    W
+    WWWWWW                                                             WWWWWW
+         W                                                             W
+         W                                                             W
+         W                                                             W
+         WWWWW   WWWWWWWWWWWWWWWWWWWW   WWWWWWWWWWWWWWWWWWWWWWWW   WWWWW                                         
+         W                                                             W
+         W                                                             W
+         W                                                             W
+         W                                                             W                                            
+         WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"""
 
 map = map.splitlines()
 wallList = []
