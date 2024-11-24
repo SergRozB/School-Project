@@ -225,7 +225,7 @@ class Enemy(MoveObject):
         self.target = player
         self.override = False # Determins wether to override pathfinding
         self.rootNode = None
-        self.health = 30
+        self.health = 60
         self.damage = 10
         self.initialTime = time.time()
         self.wait = True
@@ -312,7 +312,7 @@ class Enemy(MoveObject):
             self.DealDamage()
     
     def Separate(self, factor):
-        listOfRects = list(enemyRects.keys())
+        listOfRects = [item[0] for item in enemyRects]
         enemyCloseList = self.closeRect.collidelistall(listOfRects)
         for index in enemyCloseList:
             enemyClose = listOfRects[index] 
@@ -482,7 +482,7 @@ class WaveManager():
             allSprites.add(enemy)
             liveSprites.add(enemy)
             enemySprites.add(enemy)
-            enemyRects[enemy.hitboxRect] = enemy
+            enemyRects.append((enemy.hitboxRect, enemy))
             enemy.CreateLocalRects(allSprites)
 
 class MeleeWeapon():
@@ -490,9 +490,9 @@ class MeleeWeapon():
         self.attackRange = attackRange
         self.attackSpeed = attackSpeed
         self.damage = damage
-        self.rangeRect = pygame.rect.Rect(0, 0, 64, 64)
         self.lastUsed = 0
         self.baseRangeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\Axe Range.png").convert_alpha(), 0, 1)
+        self.baseRangeImage = pygame.transform.scale(self.baseRangeImage, (self.baseRangeImage.get_rect().w, self.baseRangeImage.get_rect().h * attackRange))
     
     def Use(self, user):
         # Function called when the weapon is used
@@ -505,23 +505,24 @@ class MeleeWeapon():
     def Attack(self, user):
         # Deals damage to the zombie colliding with the rect
         # of the weapon
-        self.rangeRect.center = user.hitboxRect.center
-        axeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle)
-        axeRangeMask = pygame.mask.from_surface(axeImage)
-        axeMaskImage = axeRangeMask.to_surface()
-        screen.blit(axeMaskImage, ((user.hitboxRect.x - camera.offset.x) * zoomLevel, (user.hitboxRect.y - camera.offset.y) * zoomLevel))
-        rect = axeImage.get_rect()
-        rect.center = user.hitboxRect.center
-        pygame.draw.rect(screen, "red", rect)
-        listOfRects = list(enemyRects.keys())
-        indices = self.rangeRect.collidelistall(listOfRects)
+        rangeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle)
+        rangeMask = pygame.mask.from_surface(rangeImage)
+        maskImage = rangeMask.to_surface()
+        rect = rangeImage.get_rect()
+        offsetVector = pygame.math.Vector2(user.hitboxRect.centerx+user.lookDirection.x*16*self.attackRange, user.hitboxRect.centery+user.lookDirection.y*16*self.attackRange)
+        rect.center = offsetVector
+        print("rect center:", rect.center)
+        #pygame.draw.rect(screen, "green", rect)
+        screen.blit(maskImage, ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
+        listOfRects = [item[0] for item in enemyRects]
+        indices = rect.collidelistall(listOfRects)
         for index in indices:
             zombieRect = listOfRects[index]
             zombieRectMask = pygame.mask.Mask((zombieRect.width, zombieRect.height))
             zombieRectMask.fill()
-            offset = (self.rangeRect.centerx - zombieRect.centerx, self.rangeRect.centery - zombieRect.centery)
-            if axeRangeMask.overlap(zombieRectMask, offset):
-                zombie = enemyRects[zombieRect]
+            offset = (rect.x - zombieRect.x, rect.y - zombieRect.y)
+            if rangeMask.overlap(zombieRectMask, offset):
+                zombie = enemyRects[index][1]
                 zombie.health -= self.damage
 
 #################### CREATE GROUPS/LISTS ####################
@@ -535,13 +536,13 @@ showPathSprites = pygame.sprite.Group()
 enemySprites = pygame.sprite.Group() # Group of enemy sprites.
 bullets = pygame.sprite.Group() # Group of bullet sprites to check if bullet colliding with other bullet
 noCollisionSprites = pygame.sprite.Group()
-enemyRects = {} # dict of enemy rects
+enemyRects = [] # 2d array of enemy rects and sprites ---> (enemy rect, enemy sprite)
 UISprites = pygame.sprite.Group()
 zombieAttackSprites = pygame.sprite.Group() # Group of sprites the zombies will attack
 #################### CREATE OBJECTS ####################
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
-Axe = MeleeWeapon(3, 0, 50)
+Axe = MeleeWeapon(1, 0.6, 50)
 player = Player((850, 850))
 enemySpawnTop = enemySpawnArea((32, 32), (43*32, 3*32))
 enemySpawnLeft = enemySpawnArea((32*-3, 32*8), (3*32, 22*32))
@@ -642,7 +643,7 @@ def main():
             drawnRect.height = sprite.rect.height * zoomLevel
             screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
                         ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-            pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+            #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
         #pygame.draw.rect(screen, "green", Axe.rangeRect)
         
         #for sprite in pathSprites:
