@@ -77,12 +77,12 @@ class VectorFieldPathfinding():
                     distToCurrent = self.GetDist(currentPos, pos)
                     #print("currentpos:", currentPos, "| pos:", pos, "| get dist:", distToCurrent)
                     distFromTarget = currentPosDist + distToCurrent
-                    if distToCurrent == 14 and self.FindCellInfo(pos, "nextToWall") and self.FindCellInfo(currentPos, "nextToWall"):
-                        distFromTarget += 1000
+                    #if distToCurrent == 14 and self.FindCellInfo(pos, "nextToWall") and self.FindCellInfo(currentPos, "nextToWall"):
+                        #distFromTarget += 1000
                     if self.FindCellInfo(pos, "visited"):
                         if distFromTarget < self.FindCellInfo(pos, "distToTarget"):
                             self.SetCellInfo(pos, "distToTarget", distFromTarget)
-                    if not self.FindCellInfo(pos, "visited"):
+                    else:
                         self.SetCellInfo(pos, "distToTarget", distFromTarget)
                         self.SetCellInfo(pos, "visited", True)
                         openList.append(pos)
@@ -99,22 +99,31 @@ class VectorFieldPathfinding():
                 upPos, downPos, rightPos, leftPos = horzVertNeighbours
                 #print("left:", self.FindCellInfo(leftPos, "distToTarget"))
                 #print("right:", self.FindCellInfo(rightPos, "distToTarget"))
+                posDistToTarget = self.FindCellInfo(pos, "distToTarget")
+                leftDist = 0
+                rightDist = 0
+                upDist = 0
+                downDist = 0
                 if rightPos == False and leftPos != False:
-                    newVectorX = self.FindCellInfo(pos, "distToTarget") - self.FindCellInfo(leftPos, "distToTarget")
+                    leftDist = self.FindCellInfo(leftPos, "distToTarget")
+                    newVectorX = posDistToTarget - leftDist
                 elif leftPos == False and rightPos != False:
-                    newVectorX = self.FindCellInfo(rightPos, "distToTarget") - self.FindCellInfo(pos, "distToTarget")
+                    rightDist = self.FindCellInfo(rightPos, "distToTarget")
+                    newVectorX = rightDist - posDistToTarget
                 elif leftPos == False and rightPos == False:
                     newVectorX = 0
                 else:
-                    newVectorX = self.FindCellInfo(rightPos, "distToTarget") - self.FindCellInfo(leftPos, "distToTarget")
+                    newVectorX = rightDist - leftDist
                 if upPos == False and downPos != False:
-                    newVectorY = self.FindCellInfo(pos, "distToTarget") - self.FindCellInfo(downPos, "distToTarget")
+                    downDist = self.FindCellInfo(downPos, "distToTarget")
+                    newVectorY = posDistToTarget - downDist
                 elif downPos == False and upPos != False:
-                    newVectorY = self.FindCellInfo(upPos, "distToTarget") - self.FindCellInfo(pos, "distToTarget")
+                    upDist = self.FindCellInfo(upPos, "distToTarget")
+                    newVectorY = upDist - posDistToTarget
                 elif downPos == False and upPos == False:
                     newVectorY = 0
                 else:
-                    newVectorY = self.FindCellInfo(upPos, "distToTarget") - self.FindCellInfo(downPos, "distToTarget")
+                    newVectorY = upDist - downDist
                 #print("new vector:", (newVectorX, newVectorY))
                 newVector = pygame.math.Vector2(newVectorX, newVectorY)
                 if newVectorX != 0 or newVectorY != 0:
@@ -176,15 +185,15 @@ class VectorFieldPathfinding():
         if cell[0] == pos:
             if wanted == 'distToTarget':
                 return cell[1][0]
-            if wanted == 'nextToWall':
+            elif wanted == 'nextToWall':
                 return cell[1][1]
-            if wanted == 'hasObstacle':
+            elif wanted == 'hasObstacle':
                 return cell[1][2]
-            if wanted == 'visited':
+            elif wanted == 'visited':
                 return cell[1][3]
-            if wanted == 'vector':
+            elif wanted == 'vector':
                 return cell[1][4]
-            if wanted == 'exists':
+            elif wanted == 'exists':
                 return True
         if cell[0] != pos:
             if wanted == 'exists':

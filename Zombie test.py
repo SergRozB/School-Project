@@ -145,7 +145,7 @@ class Player(MoveObject):
 
         self.lookDirection = 0
         self.inventory = []
-        self.currentItem = Fists
+        self.currentItem = AutoRifle
 
         self.canUse = False
         self.health = 10000000000
@@ -336,7 +336,7 @@ class Enemy(MoveObject):
             #self.direction.y += y*factor
 
 class RangedWeapon():
-    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed):
+    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed, imagePath):
         self.damage = damage
         self.fireRate = fireRate
         self.spread = spread
@@ -345,6 +345,8 @@ class RangedWeapon():
         self.reloadSpeed = reloadSpeed
         self.currentAmmo = magazineCap
         self.lastFired = 0
+        self.itemSprite = pygame.image.load(pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1))
+
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
@@ -496,13 +498,14 @@ class WaveManager():
             enemy.CreateLocalRects(allSprites)
 
 class MeleeWeapon():
-    def __init__(self, attackRange, attackSpeed, damage):
+    def __init__(self, attackRange, attackSpeed, damage, imagePath):
         self.attackRange = attackRange
         self.attackSpeed = attackSpeed
         self.damage = damage
         self.lastUsed = 0
         self.baseRangeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\Axe Range.png").convert_alpha(), 0, 1)
         self.baseRangeImage = pygame.transform.scale(self.baseRangeImage, (self.baseRangeImage.get_rect().w, self.baseRangeImage.get_rect().h * attackRange))
+        self.itemSprite = pygame.image.load(pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1))
     
     def Use(self, user):
         # Function called when the weapon is used
@@ -553,8 +556,8 @@ storeItems = []
 
 #################### CREATE OBJECTS ####################
 
-AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
-Axe = MeleeWeapon(1.5, 0.6, 50)
+AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png")
+Axe = MeleeWeapon(1.5, 0.6, 50, "SpriteImages\AxeSprite.png")
 Fists = MeleeWeapon(0.8, 0.2, 10)
 player = Player((850, 850))
 enemySpawnTop = enemySpawnArea((32, 32), (61*32, 4*32))

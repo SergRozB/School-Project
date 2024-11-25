@@ -22,6 +22,11 @@ class UIManager():
         pointsText = font.render(pointsTextInput, True, "white")
         pointsTextRect = pointsText.get_rect(center=(350, 550))
         screen.blit(pointsText, pointsTextRect)
+        # Current item box
+        itemSprite = player.currentItem.itemSprite
+        itemBoxRect = itemSprite.get_rect()
+        itemBoxRect.center = (650, 550)
+        screen.blit(itemSprite, itemBoxRect)
 
     def DayUI(self):
         # Creates UI for daytime
