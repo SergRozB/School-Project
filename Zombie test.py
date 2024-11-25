@@ -145,7 +145,7 @@ class Player(MoveObject):
 
         self.lookDirection = 0
         self.inventory = []
-        self.currentItem = AutoRifle
+        self.currentItem = Fists
 
         self.canUse = False
         self.health = 10000000000
@@ -345,7 +345,7 @@ class RangedWeapon():
         self.reloadSpeed = reloadSpeed
         self.currentAmmo = magazineCap
         self.lastFired = 0
-        self.itemSprite = pygame.image.load(pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1))
+        self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
 
     
     def Use(self, user):
@@ -505,7 +505,7 @@ class MeleeWeapon():
         self.lastUsed = 0
         self.baseRangeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\Axe Range.png").convert_alpha(), 0, 1)
         self.baseRangeImage = pygame.transform.scale(self.baseRangeImage, (self.baseRangeImage.get_rect().w, self.baseRangeImage.get_rect().h * attackRange))
-        self.itemSprite = pygame.image.load(pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1))
+        self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
     
     def Use(self, user):
         # Function called when the weapon is used
@@ -558,7 +558,7 @@ storeItems = []
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png")
 Axe = MeleeWeapon(1.5, 0.6, 50, "SpriteImages\AxeSprite.png")
-Fists = MeleeWeapon(0.8, 0.2, 10)
+Fists = MeleeWeapon(0.8, 0.2, 10, "SpriteImages\FistSprite.png")
 player = Player((850, 850))
 enemySpawnTop = enemySpawnArea((32, 32), (61*32, 4*32))
 enemySpawnLeft = enemySpawnArea((32*-4, 32*10), (4*32, 37*32))

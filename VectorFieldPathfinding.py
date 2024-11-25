@@ -104,21 +104,27 @@ class VectorFieldPathfinding():
                 rightDist = 0
                 upDist = 0
                 downDist = 0
-                if rightPos == False and leftPos != False:
+                if leftPos != False:
                     leftDist = self.FindCellInfo(leftPos, "distToTarget")
+                if rightPos != False:
+                    rightDist = self.FindCellInfo(rightPos, "distToTarget")
+                if upPos != False:
+                    upDist = self.FindCellInfo(upPos, "distToTarget")
+                if downPos != False:
+                    downDist = self.FindCellInfo(downPos, "distToTarget")
+
+                if rightPos == False and leftPos != False:
                     newVectorX = posDistToTarget - leftDist
                 elif leftPos == False and rightPos != False:
-                    rightDist = self.FindCellInfo(rightPos, "distToTarget")
                     newVectorX = rightDist - posDistToTarget
                 elif leftPos == False and rightPos == False:
                     newVectorX = 0
                 else:
                     newVectorX = rightDist - leftDist
+
                 if upPos == False and downPos != False:
-                    downDist = self.FindCellInfo(downPos, "distToTarget")
                     newVectorY = posDistToTarget - downDist
                 elif downPos == False and upPos != False:
-                    upDist = self.FindCellInfo(upPos, "distToTarget")
                     newVectorY = upDist - posDistToTarget
                 elif downPos == False and upPos == False:
                     newVectorY = 0
