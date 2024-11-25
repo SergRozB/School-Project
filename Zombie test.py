@@ -27,8 +27,6 @@ for line in MapMaker.map:
     if currentFirstOccurence < firstOccurrence:
         firstOccurrence = currentFirstOccurence
 
-print("first occurence:", firstOccurrence, "| current wdth:", currentWidth)
-
 topSpawnPoint = (100, 50)
 top = 0
 
@@ -41,6 +39,7 @@ white = (255, 255, 255)
 black = (0, 0, 0)
 red = (255, 0, 0)
 green = (0, 255, 0)
+darkSoftRed = (194, 36, 25)
 screen = pygame.display.set_mode([screenW, screenH])
 clock = pygame.time.Clock()
 
@@ -146,11 +145,14 @@ class Player(MoveObject):
 
         self.lookDirection = 0
         self.inventory = []
-        self.currentItem = Axe
+        self.currentItem = Fists
 
         self.canUse = False
         self.health = 10000000000
         self.points = 0
+
+        self.redTintDuration = 0.1
+        self.timeSinceTint = 0
 
     def UseItem(self):
         if self.canUse:
@@ -190,6 +192,7 @@ class Player(MoveObject):
     
     def TakeDamage(self, damage):
         self.health -= damage
+        self.timeSinceTint = time.time()
         if self.health <= 0:
             dead()
         
@@ -201,6 +204,8 @@ class Player(MoveObject):
         self.Move(True)
         self.RotateToMouse()
         self.UseItem()
+        if (time.time() - self.timeSinceTint) < self.redTintDuration:
+            self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
 
 class Enemy(MoveObject):
     # Constructor. 
@@ -231,11 +236,8 @@ class Enemy(MoveObject):
         self.wait = True
         self.lastAttacked = 0
         self.damageRate = 0.5
-    
-    def CheckDeath(self):
-        if self.health <= 0:
-            player.points += 1
-            self.kill()
+        self.redTintDuration = 0.1
+        self.timeSinceTint = 0      
     
     def DealDamage(self):
         timeSince = time.time() - self.lastAttacked
@@ -294,13 +296,19 @@ class Enemy(MoveObject):
         #pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.direction.x , self.pos.y + self.direction.y ))
         self.direction = direction
 
+    def TakeDamage(self, damage):
+        self.health -= damage
+        self.timeSinceTint = time.time()
+        if self.health <= 0:
+            player.points += 1
+            self.kill()
+
     def Update(self):
         if self.wait:
             self.Wait()
         else:
             self.oldRect = self.hitboxRect.copy()
             """ Update the position of the enemy """
-            self.CheckDeath()
             self.RotateToTarget()
             self.SetDirection()
             self.Move(True)
@@ -310,6 +318,8 @@ class Enemy(MoveObject):
             #pygame.draw.rect(screen, white, self.dealDamageRect)
             self.Separate(0.005)
             self.DealDamage()
+            if (time.time() - self.timeSinceTint) < self.redTintDuration:
+                self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
     
     def Separate(self, factor):
         listOfRects = [item[0] for item in enemyRects]
@@ -392,7 +402,7 @@ class Bullet(MoveObject):
         return -math.degrees(math.atan2(yDist, xDist)) - 90
 
     def DealDamage(self, sprite):
-        sprite.health -= self.damage
+        sprite.TakeDamage(self.damage)
     
     def CheckCollision(self):
         collidedWith = self.hitboxRect.collidedict(self.localRects)
@@ -523,7 +533,7 @@ class MeleeWeapon():
             offset = (rect.x - zombieRect.x, rect.y - zombieRect.y)
             if rangeMask.overlap(zombieRectMask, offset):
                 zombie = enemyRects[index][1]
-                zombie.health -= self.damage
+                zombie.TakeDamage(self.damage)
 
 #################### CREATE GROUPS/LISTS ####################
 
@@ -539,15 +549,18 @@ noCollisionSprites = pygame.sprite.Group()
 enemyRects = [] # 2d array of enemy rects and sprites ---> (enemy rect, enemy sprite)
 UISprites = pygame.sprite.Group()
 zombieAttackSprites = pygame.sprite.Group() # Group of sprites the zombies will attack
+storeItems = []
+
 #################### CREATE OBJECTS ####################
 
 AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5)
-Axe = MeleeWeapon(1, 0.6, 50)
+Axe = MeleeWeapon(1.5, 0.6, 50)
+Fists = MeleeWeapon(0.8, 0.2, 10)
 player = Player((850, 850))
-enemySpawnTop = enemySpawnArea((32, 32), (43*32, 3*32))
-enemySpawnLeft = enemySpawnArea((32*-3, 32*8), (3*32, 22*32))
-enemySpawnRight = enemySpawnArea((32*45, 32*8), (3*32, 22*32))
-enemySpawnBottom = enemySpawnArea((32, 32*34), (43*32, 3*32))
+enemySpawnTop = enemySpawnArea((32, 32), (61*32, 4*32))
+enemySpawnLeft = enemySpawnArea((32*-4, 32*10), (4*32, 37*32))
+enemySpawnRight = enemySpawnArea((32*63, 32*10), (4*32, 37*32))
+enemySpawnBottom = enemySpawnArea((32, 32*52), (61*32, 4*32))
 
 #################### SETUP ####################
 
@@ -580,6 +593,8 @@ uiManager = UIManager.UIManager()
 waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight)
 
 lastTimeSincePath = 0
+
+storeItems = [Axe, AutoRifle]
 
 #################### SPAWN ZOMBIES ####################
 

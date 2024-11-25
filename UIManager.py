@@ -8,12 +8,20 @@ class UIManager():
         self.mouseButtonPressed = False
 
     def playerUI(self, player, screen):
+        # Creates the player UI
+        # Health text
         font = pygame.font.SysFont("cambria", 30)
-        textInput = "Health: "
-        textInput += str(player.health)
-        text = font.render(textInput, True, "white")
-        textRect = text.get_rect(center=(150, 550))
-        screen.blit(text, textRect)
+        healthTextInput = "Health: "
+        healthTextInput += str(player.health)
+        healthText = font.render(healthTextInput, True, "white")
+        healthTextRect = healthText.get_rect(center=(150, 550))
+        screen.blit(healthText, healthTextRect)
+        # Points text
+        pointsTextInput = "Points: "
+        pointsTextInput += str(player.points)
+        pointsText = font.render(pointsTextInput, True, "white")
+        pointsTextRect = pointsText.get_rect(center=(350, 550))
+        screen.blit(pointsText, pointsTextRect)
 
     def DayUI(self):
         # Creates UI for daytime
