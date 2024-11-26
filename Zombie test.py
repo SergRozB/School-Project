@@ -463,7 +463,7 @@ class WaveManager():
             self.SpawnZombies(spawnArea)
 
     def Daytime(self, uiManager):
-        uiManager.DayUI(storeItems, screen)
+        uiManager.DayUI(storeItems)
         player.health = 100
 
     def Update(self, enemySprites, uiManager):
@@ -634,7 +634,7 @@ def main():
         if timeSincePath >= 0.5:
             #print("time:", timeSincePath)
             pathFindPlayer.CreateMap()
-            #cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='cumtime')
+            #cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='tottime')
             lastTimeSincePath = time.time()
         screen.fill(black)
         for event in pygame.event.get():

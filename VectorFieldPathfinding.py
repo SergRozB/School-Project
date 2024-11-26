@@ -183,27 +183,18 @@ class VectorFieldPathfinding():
     
     def FindCellInfo(self, pos, wanted):
         # Finds cell information from local path map
-        if pos == -1 or type(pos) == str:
-            print("ERROR: bad pos")
-            return "no pos"
         y = pos[1]
         x = pos[0]
         #print("|Calculation:", (y-1)*self.horizontalCount + x-1,"| horizontal count", self.horizontalCount, "| vertical:", self.verticalCount, "|pos wanted:", pos)
         #print("len:", len(self.localPathMap))
         calculatedIndex = (y-1)*self.horizontalCount + x-1
         #print("index:", calculatedIndex, "| len:", len(self.localPathMap))
-        if calculatedIndex >= len(self.localPathMap) and wanted == 'exists':
+        if calculatedIndex >= len(self.localPathMap):
             return False
+        elif wanted == 'exists':
+            return True
         cell = self.localPathMap[calculatedIndex]
-        if cell[0] == pos:
-            if wanted == 'exists':
-                return True
-            else:
-                return cell[1][self.wantedDict[wanted]]
-        if cell[0] != pos:
-            if wanted == 'exists':
-                return False
-        return 'not found' 
+        return cell[1][self.wantedDict[wanted]]
                 
     def SetCellInfo(self, pos, wanted, change):
         # Changes cell information from local path map
