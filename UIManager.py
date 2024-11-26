@@ -23,24 +23,30 @@ class UIManager():
         pointsTextRect = pointsText.get_rect(center=(350, 550))
         screen.blit(pointsText, pointsTextRect)
         # Current item box
-        position = (850, 550)
         frameBehindItemSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
         frameBehindItemSurface = pygame.transform.scale(frameBehindItemSurface, (frameBehindItemSurface.get_rect().w*2, frameBehindItemSurface.get_rect().h*2))
         frameRect = frameBehindItemSurface.get_rect()
-        frameRect.center = position
+        frameRect.center = (851, 550)
         screen.blit(frameBehindItemSurface, frameRect)
         itemSprite = player.currentItem.itemSprite
         itemSprite = pygame.transform.scale(itemSprite, (itemSprite.get_rect().w * 2, itemSprite.get_rect().h * 2))
         itemBoxRect = itemSprite.get_rect()
-        itemBoxRect.center = position
+        itemBoxRect.center = (850, 550)
         screen.blit(itemSprite, itemBoxRect)
 
-    def DayUI(self):
+    def DayUI(self, storeItems, screen):
         # Creates UI for daytime
         nextWaveSurface = pygame.image.load("SpriteImages\WornButton.png")
         nextWaveSurface = pygame.transform.scale(nextWaveSurface, (200, 75))
         nextWaveButton = Button.Button(nextWaveSurface, 150, 450, "Next Wave", 30, "NextWave", True)
         self.buttonList.append(nextWaveButton)
+        for item in storeItems:
+            itemSprite = item.itemSprite
+            itemSprite = pygame.transform.scale(itemSprite, (itemSprite.get_rect().w * 2, itemSprite.get_rect().h * 2))
+            itemBoxRect = itemSprite.get_rect()
+            itemBoxRect.center = (850, 350)
+            screen.blit(itemSprite, itemBoxRect)
+            #THIS NOT UPDATING EVERY FRAME, MAKE IT DO SO
 
     def ButtonFunctions(self, name, waveManager):
         # Maps the button names to their functions

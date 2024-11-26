@@ -463,7 +463,7 @@ class WaveManager():
             self.SpawnZombies(spawnArea)
 
     def Daytime(self, uiManager):
-        uiManager.DayUI()
+        uiManager.DayUI(storeItems, screen)
         player.health = 100
 
     def Update(self, enemySprites, uiManager):

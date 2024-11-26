@@ -15,6 +15,13 @@ class VectorFieldPathfinding():
         self.targetPos = 0
         for cell in self.pathSprites:
             self.pathRectList.append(cell.rect)
+        self.wantedDict = {
+            'distToTarget' : 0,
+            'nextToWall' : 1,
+            'hasObstacle' : 2,
+            'visited' : 3,
+            'vector' : 4
+        }
 
     def CreateMap(self):
         self.CleanPath()
@@ -189,18 +196,10 @@ class VectorFieldPathfinding():
             return False
         cell = self.localPathMap[calculatedIndex]
         if cell[0] == pos:
-            if wanted == 'distToTarget':
-                return cell[1][0]
-            elif wanted == 'nextToWall':
-                return cell[1][1]
-            elif wanted == 'hasObstacle':
-                return cell[1][2]
-            elif wanted == 'visited':
-                return cell[1][3]
-            elif wanted == 'vector':
-                return cell[1][4]
-            elif wanted == 'exists':
+            if wanted == 'exists':
                 return True
+            else:
+                return cell[1][self.wantedDict[wanted]]
         if cell[0] != pos:
             if wanted == 'exists':
                 return False
@@ -215,16 +214,7 @@ class VectorFieldPathfinding():
         x = pos[0]
         cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
         if cell[0] == pos:
-            if wanted == 'distToTarget':
-                cell[1][0] = change
-            if wanted == 'nextToWall':
-                cell[1][1] = change
-            if wanted == 'hasObstacle':
-                cell[1][2] = change
-            if wanted == 'visited':
-                cell[1][3] = change
-            if wanted == 'vector':
-                cell[1][4] = change
+            cell[1][self.wantedDict[wanted]] = change
     
     def CleanPath(self):
         # Wipes information from the local path map for the next pathfind
