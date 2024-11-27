@@ -132,7 +132,7 @@ class Player(MoveObject):
     # Constructor. 
     def __init__(self, startingPosition):
         # Call the parent class (Sprite) constructor
-        super().__init__(startingPosition, 500)
+        super().__init__(startingPosition, 250)
  
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
@@ -144,8 +144,8 @@ class Player(MoveObject):
         self.oldRect = self.hitboxRect.copy()
 
         self.lookDirection = 0
-        self.inventory = []
-        self.currentItem = Fists
+        self.inventory = [Fists]
+        self.currentItem = 0
 
         self.canUse = False
         self.health = 10000000000
@@ -156,7 +156,33 @@ class Player(MoveObject):
 
     def UseItem(self):
         if self.canUse:
-            self.currentItem.Use(self)
+            self.GetCurrentItem().Use(self)
+    
+    def GetCurrentItem(self):
+        return self.inventory[self.currentItem]
+    
+    def ScrollInventory(self, direction):
+        if direction == "up":
+            if self.currentItem + 1 >= len(self.inventory):
+                self.currentItem = 0
+            else:
+                self.currentItem += 1
+        elif direction == "down":
+            if self.currentItem - 1 <= 0:
+                self.currentItem = len(self.inventory)-1
+            else:
+                self.currentItem -= 1
+    
+    def BuyItem(self, item):
+        if item in self.inventory:
+            print("Already in Inventory!")
+        elif self.points >= item.price:
+            self.inventory.append(item)
+            self.points -= item.price
+            print("Bought item!")
+            print("Inventory:", self.inventory)
+        else:
+            print("But I don't have any moneeeey")
 
     def CheckControls(self):
         keys = pygame.key.get_pressed()
@@ -175,7 +201,6 @@ class Player(MoveObject):
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             self.direction.y = 1
 
-    
     def RotateToMouse(self):
         x = self.hitboxRect.centerx 
         y = self.hitboxRect.centery 
@@ -224,14 +249,14 @@ class Enemy(MoveObject):
         self.oldRect = self.hitboxRect.copy()
         self.closeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*1.1, self.hitboxRect.height*1.1)
         #self.outsourcePathRect = pygame.Rect(0, 0, self.hitboxRect.width*1.5, self.hitboxRect.height*1.5)
-        self.dealDamageRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*1.5, self.hitboxRect.height*1.5)
+        self.dealDamageRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*1.1, self.hitboxRect.height*1.1)
         #self.isPathfinder = True
 
         self.target = player
         self.override = False # Determins wether to override pathfinding
         self.rootNode = None
         self.health = 60
-        self.damage = 10
+        self.damage = 5
         self.initialTime = time.time()
         self.wait = True
         self.lastAttacked = 0
@@ -336,7 +361,7 @@ class Enemy(MoveObject):
             #self.direction.y += y*factor
 
 class RangedWeapon():
-    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed, imagePath):
+    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed, imagePath, price):
         self.damage = damage
         self.fireRate = fireRate
         self.spread = spread
@@ -346,7 +371,7 @@ class RangedWeapon():
         self.currentAmmo = magazineCap
         self.lastFired = 0
         self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
-
+        self.price = price
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
@@ -449,9 +474,10 @@ class WaveManager():
         self.waveCount = 0 
         self.maxWave = 3
 
-    def NextWave(self):
+    def NextWave(self, uiManager):
         print("next wave")
         self.isDay = False
+        uiManager.RemoveDayUI()
         self.waveCount += 1
         if self.waveCount == 1:
             self.spawnNumber = 1
@@ -498,7 +524,7 @@ class WaveManager():
             enemy.CreateLocalRects(allSprites)
 
 class MeleeWeapon():
-    def __init__(self, attackRange, attackSpeed, damage, imagePath):
+    def __init__(self, attackRange, attackSpeed, damage, imagePath, price):
         self.attackRange = attackRange
         self.attackSpeed = attackSpeed
         self.damage = damage
@@ -506,6 +532,7 @@ class MeleeWeapon():
         self.baseRangeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\Axe Range.png").convert_alpha(), 0, 1)
         self.baseRangeImage = pygame.transform.scale(self.baseRangeImage, (self.baseRangeImage.get_rect().w, self.baseRangeImage.get_rect().h * attackRange))
         self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
+        self.price = price
     
     def Use(self, user):
         # Function called when the weapon is used
@@ -526,7 +553,9 @@ class MeleeWeapon():
         rect.center = offsetVector
         print("rect center:", rect.center)
         #pygame.draw.rect(screen, "green", rect)
-        screen.blit(maskImage, ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
+        #screen.blit(maskImage, ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
+        screen.blit(pygame.transform.scale(maskImage, (rect.w * zoomLevel, rect.h * zoomLevel)), 
+                        ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
         listOfRects = [item[0] for item in enemyRects]
         indices = rect.collidelistall(listOfRects)
         for index in indices:
@@ -556,9 +585,9 @@ storeItems = []
 
 #################### CREATE OBJECTS ####################
 
-AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png")
-Axe = MeleeWeapon(1.5, 0.6, 50, "SpriteImages\AxeSprite.png")
-Fists = MeleeWeapon(0.8, 0.2, 10, "SpriteImages\FistSprite.png")
+AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15)
+Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4)
+Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0)
 player = Player((850, 850))
 enemySpawnTop = enemySpawnArea((32, 32), (61*32, 4*32))
 enemySpawnLeft = enemySpawnArea((32*-4, 32*10), (4*32, 37*32))
@@ -645,9 +674,16 @@ def main():
                 #print("Mpos:", pygame.mouse.get_pos())
                 player.canUse = True
                 uiManager.mouseButtonPressed = True
+
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 player.canUse = False
                 uiManager.mouseButtonPressed = False
+            
+            if event.type == pygame.MOUSEWHEEL:
+                if event.y == 1:
+                    player.ScrollInventory("up")
+                elif event.y == -1:
+                    player.ScrollInventory("down")
 
         for sprite in liveSprites:
             sprite.Update()
