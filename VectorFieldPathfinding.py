@@ -31,7 +31,7 @@ class VectorFieldPathfinding():
 
     def GetDirection(self, rect):
         startPos = self.GetRectCellPos(rect)
-        vector = self.FindCellInfo(startPos, "vector")
+        vector = self.localPathMap[startPos][self.vectorI]
         return vector
 
     def GetNeighbours(self, sourcePos):
@@ -50,7 +50,8 @@ class VectorFieldPathfinding():
         neighbours = []
         for pos in neighboursPos:
             # Checks if the position exists
-            if self.FindCellInfo(pos, 'exists'):
+            if self.CheckExist(pos):
+                #print("herfhefe")
                 neighbours.append(pos)
         return neighbours
     
@@ -65,7 +66,7 @@ class VectorFieldPathfinding():
         neighbours = []
         for pos in neighboursPos:
             # Checks if the position exists
-            if not self.FindCellInfo(pos, 'exists') or self.FindCellInfo(pos, 'hasObstacle'):
+            if not self.CheckExist(pos) or self.localPathMap[pos][self.obstacleI]:
                 pos = False
             neighbours.append(pos)
         return neighbours
@@ -75,23 +76,25 @@ class VectorFieldPathfinding():
         currentPos = endPos
         neighbourNodes = self.GetNeighbours(endPos)
         #print("endpos dist:", self.FindCellInfo(endPos, "distToTarget"))
-        self.SetCellInfo(endPos, "visited", True)
+        oldArray = self.localPathMap[endPos]
+        self.localPathMap[endPos] = (oldArray[0], oldArray[1], oldArray[2], True, oldArray[4])
         while len(openList) > 0: 
             #print("current pos:", currentPos, "| len open list:", len(openList))
-            currentPosDist = self.FindCellInfo(currentPos, "distToTarget")
+            currentPosDist = self.localPathMap[currentPos][self.distToTargetI]
             for pos in neighbourNodes:
-                if not self.FindCellInfo(pos, "hasObstacle"):
+                if not self.localPathMap[pos][self.obstacleI]:
                     distToCurrent = self.GetDist(currentPos, pos)
                     #print("currentpos:", currentPos, "| pos:", pos, "| get dist:", distToCurrent)
                     distFromTarget = currentPosDist + distToCurrent
-                    #if distToCurrent == 14 and self.FindCellInfo(pos, "nextToWall") and self.FindCellInfo(currentPos, "nextToWall"):
-                        #distFromTarget += 1000
-                    if self.FindCellInfo(pos, "visited"):
-                        if distFromTarget < self.FindCellInfo(pos, "distToTarget"):
-                            self.SetCellInfo(pos, "distToTarget", distFromTarget)
+                    if distToCurrent == 14 and self.localPathMap[pos][self.nextToWallI] and self.localPathMap[currentPos][self.nextToWallI]:
+                        distFromTarget += 10000
+                    if self.localPathMap[pos][self.visitedI]:
+                        if distFromTarget < self.localPathMap[pos][self.distToTargetI]:
+                            oldArray = self.localPathMap[endPos]
+                            self.localPathMap[pos] = (distFromTarget, oldArray[1], oldArray[2], oldArray[3], oldArray[4])
                     else:
-                        self.SetCellInfo(pos, "distToTarget", distFromTarget)
-                        self.SetCellInfo(pos, "visited", True)
+                        oldArray = self.localPathMap[endPos]
+                        self.localPathMap[pos] = (distFromTarget, oldArray[1], oldArray[2], True, oldArray[4])
                         openList.append(pos)
             openList.remove(currentPos)
             if len(openList) > 0:
@@ -100,25 +103,25 @@ class VectorFieldPathfinding():
     
     def GenerateVectorField(self):
         for pos in self.posList:
-            if not self.FindCellInfo(pos, 'hasObstacle'):
+            if not self.localPathMap[pos][self.obstacleI]:
                 #print("pos:", pos)
                 horzVertNeighbours = self.GetHorzVertNeighbours(pos)
                 upPos, downPos, rightPos, leftPos = horzVertNeighbours
                 #print("left:", self.FindCellInfo(leftPos, "distToTarget"))
                 #print("right:", self.FindCellInfo(rightPos, "distToTarget"))
-                posDistToTarget = self.FindCellInfo(pos, "distToTarget")
+                posDistToTarget = self.localPathMap[pos][self.distToTargetI]
                 leftDist = 0
                 rightDist = 0
                 upDist = 0
                 downDist = 0
                 if leftPos != False:
-                    leftDist = self.FindCellInfo(leftPos, "distToTarget")
+                    leftDist = self.localPathMap[leftPos][self.distToTargetI]
                 if rightPos != False:
-                    rightDist = self.FindCellInfo(rightPos, "distToTarget")
+                    rightDist = self.localPathMap[rightPos][self.distToTargetI]
                 if upPos != False:
-                    upDist = self.FindCellInfo(upPos, "distToTarget")
+                    upDist = self.localPathMap[upPos][self.distToTargetI]
                 if downPos != False:
-                    downDist = self.FindCellInfo(downPos, "distToTarget")
+                    downDist = self.localPathMap[downPos][self.distToTargetI]
 
                 if rightPos == False and leftPos != False:
                     newVectorX = posDistToTarget - leftDist
@@ -141,24 +144,31 @@ class VectorFieldPathfinding():
                 newVector = pygame.math.Vector2(newVectorX, newVectorY)
                 if newVectorX != 0 or newVectorY != 0:
                     newVector = newVector.normalize()
-                self.SetCellInfo(pos, "vector", newVector)
+                oldArray = self.localPathMap[pos]
+                self.localPathMap[pos] = (oldArray[0], oldArray[1], oldArray[2], oldArray[3], newVector)
 
     def CreateLocalPathMap(self):
-        self.localPathMap = [] # 2D list structure works like so: cell position --> g cost, h cost, parent cell, if it's next to a wall, if it has an obstacle, if it's the target
+        self.localPathMap = {} # dictionary structure works like so: cell position --> dist to target, if next to wall, if has obstacle, if visited, vector
         self.posList = []
+        # Variables containing indexes of where information is located in the array for easier referencing
+        self.distToTargetI = 0
+        self.nextToWallI = 1
+        self.obstacleI = 2
+        self.visitedI = 3
+        self.vectorI = 4
         for sprite in self.pathSprites:
-            self.localPathMap.append([sprite.pos, [sprite.distToTarget, sprite.nextToWall, sprite.hasObstacle, sprite.visited, sprite.vector]])
+            self.localPathMap[sprite.pos] = (sprite.distToTarget, sprite.nextToWall, sprite.hasObstacle, sprite.visited, sprite.vector)
             self.posList.append(sprite.pos)
         self.FixEdges()
     
     def FixEdges(self):
-        for i in self.localPathMap:
-            position = i[0]
-            if self.FindCellInfo(position, 'hasObstacle'):
+        for position in self.posList:
+            if self.localPathMap[position][self.obstacleI]:
                 horizontalNPos = [(position[0] + 1, position[1]), (position[0], position[1] + 1), (position[0] - 1, position[1]), (position[0], position[1] - 1)]
                 for pos in horizontalNPos:
-                    if self.FindCellInfo(pos, 'exists'):
-                        self.SetCellInfo(pos, 'nextToWall', True)
+                    if position in list(self.localPathMap.keys()):
+                        oldArray = self.localPathMap[position]
+                        self.localPathMap[position] = (oldArray[0], True, oldArray[2], oldArray[3], oldArray[4])
                         cellObject = self.GetCell(pos)
                         if type(cellObject) != str:
                             if not cellObject.hasObstacle:
@@ -195,6 +205,17 @@ class VectorFieldPathfinding():
             return True
         cell = self.localPathMap[calculatedIndex]
         return cell[1][self.wantedDict[wanted]]
+
+    def CheckExist(self, pos):
+        y = pos[1]
+        x = pos[0]
+        calculatedIndex = (y-1)*self.horizontalCount + x-1
+        if calculatedIndex >= len(self.localPathMap):
+            return False
+        elif self.posList[calculatedIndex] == pos:
+            return True
+        else:
+            return False
                 
     def SetCellInfo(self, pos, wanted, change):
         # Changes cell information from local path map
@@ -209,9 +230,9 @@ class VectorFieldPathfinding():
     
     def CleanPath(self):
         # Wipes information from the local path map for the next pathfind
-        for item in self.localPathMap:
-            item[1][0] = 0 # Sets dist to 0
-            item[1][3] = False # Sets 'has visited' to False
+        for pos in self.posList:
+            oldArray = self.localPathMap[pos]
+            self.localPathMap[pos] = (0, oldArray[1], oldArray[2], False, oldArray[4]) # Sets dist to 0, sets 'has visited' to False
     
     def GetCell(self, pos):
         x = pos[0]
@@ -228,7 +249,7 @@ class VectorFieldPathfinding():
             cellPosition = cell.rect.center
             cellX = (cellPosition[0] - camera.offset.x) * camera.zoomLevel
             cellY = (cellPosition[1] - camera.offset.y) * camera.zoomLevel
-            vector = self.FindCellInfo(pos, "vector")
+            vector = self.localPathMap[pos][self.vectorI]
             pygame.draw.line(screen, 'green', (cellX, cellY), (cellX + vector.x * 7, cellY + vector.y* 7))
             pygame.draw.circle(screen, 'red', (cellX, cellY), 1)
     
@@ -240,7 +261,7 @@ class VectorFieldPathfinding():
                 #print("end dist:", self.FindCellInfo(pos, "distToTarget"))
             else:
                 colour = "white"
-            textInput = str(self.FindCellInfo(pos, "distToTarget"))
+            textInput = str(self.localPathMap[pos][self.distToTargetI])
             text = font.render(textInput, True, colour)
             node = self.GetCell(pos)
             nodeX = (node.rect.centerx - camera.offset.x) * camera.zoomLevel

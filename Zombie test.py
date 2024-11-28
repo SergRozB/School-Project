@@ -244,7 +244,7 @@ class Enemy(MoveObject):
 
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.baseEnemyImage.get_rect(center = self.pos)
-        self.hitboxRect.inflate(-2, -2)
+        #self.hitboxRect.inflate(-2, -2)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
         self.closeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*1.1, self.hitboxRect.height*1.1)
@@ -320,7 +320,7 @@ class Enemy(MoveObject):
         # Must run before move function
         direction = pathFindPlayer.GetDirection(self.hitboxRect)
         #pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.direction.x , self.pos.y + self.direction.y ))
-        if direction.x > 0 and direction.y > 0:
+        if direction.x != 0 or direction.y != 0:
             self.direction = direction
 
     def TakeDamage(self, damage):
