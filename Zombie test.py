@@ -11,7 +11,7 @@ import cProfile
 pygame.init()
 zoomLevel = Camera.zoomLevel
 
-blockWidth = 34 
+blockWidth = 32
 widthOfMap = 0
 firstOccurrence = 1000
 # Determins the width of the map and the starting x coord 
@@ -263,6 +263,7 @@ class Enemy(MoveObject):
         self.damageRate = 0.5
         self.redTintDuration = 0.1
         self.timeSinceTint = 0      
+        self.died = False
     
     def DealDamage(self):
         timeSince = time.time() - self.lastAttacked
@@ -319,13 +320,17 @@ class Enemy(MoveObject):
         # Must run before move function
         direction = pathFindPlayer.GetDirection(self.hitboxRect)
         #pygame.draw.line(screen, 'red', self.pos, (self.pos.x + self.direction.x , self.pos.y + self.direction.y ))
-        self.direction = direction
+        if direction.x > 0 and direction.y > 0:
+            self.direction = direction
 
     def TakeDamage(self, damage):
         self.health -= damage
         self.timeSinceTint = time.time()
         if self.health <= 0:
-            player.points += 1
+            print("DIE")
+            if not self.died:
+                player.points += 1
+            self.died = True
             self.kill()
 
     def Update(self):
