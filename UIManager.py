@@ -113,7 +113,7 @@ class UIManager():
                     print("store buttons?")
                     print("currnet x:", currentX)
                     buyButtonSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
-                    buyButtonSurface = pygame.transform.scale(buyButtonSurface, (200, 75))
+                    buyButtonSurface = pygame.transform.scale(buyButtonSurface, (32*3, 32*3))
                     buyButton = Button.StoreButton(buyButtonSurface, currentX, yLevel, "   ", 30, "Buy", False, item)
                     self.buttonList.append(buyButton)
                     self.storeButtonsList.append(buyButton)
