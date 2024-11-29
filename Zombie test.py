@@ -8,6 +8,7 @@ import Camera
 import UIManager
 import cProfile
 import Pathfinding
+import copy
 
 pygame.init()
 zoomLevel = Camera.zoomLevel
@@ -250,7 +251,7 @@ class Survivor(MoveObject):
         self.oldRect = self.hitboxRect.copy()
         self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
         self.lookDirection = 0
-        self.currentItem = Fists
+        self.currentItem = copy.copy(Fists)
         self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*2.5, self.hitboxRect.height*2.5)
         self.target = None # The actual target of the survivor
         self.pathTarget = None # The target the survivor will move towards which may not be the actual target
@@ -324,6 +325,7 @@ class Survivor(MoveObject):
         else:
             listOfRects = [item[0] for item in enemyRects]
             index = self.rangeRect.collidelist(listOfRects)
+            print("index:", index)
             if index != -1:
                 self.target = enemyRects[index][1]
                 self.hasTarget = True
@@ -342,7 +344,7 @@ class Survivor(MoveObject):
         if len(self.pathFind.path) > 0:
             print("following?")
             self.FollowPath()
-        else:
+        elif self.hasTarget:
             self.pathTarget = self.target
         if self.hasTarget:
             self.RotateToTarget()
@@ -456,6 +458,7 @@ class Enemy(MoveObject):
                 player.points += 1
             self.died = True
             self.kill()
+            enemyRects.remove((self.hitboxRect, self))
 
     def Update(self):
         if self.wait:
