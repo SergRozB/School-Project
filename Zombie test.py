@@ -7,6 +7,7 @@ import time
 import Camera
 import UIManager
 import cProfile
+import Pathfinding
 
 pygame.init()
 zoomLevel = Camera.zoomLevel
@@ -148,7 +149,7 @@ class Player(MoveObject):
         self.currentItem = 0
 
         self.canUse = False
-        self.health = 10000000000
+        self.health = 100
         self.points = 0
 
         self.redTintDuration = 0.1
@@ -214,6 +215,9 @@ class Player(MoveObject):
         self.angle = math.degrees(math.atan2(yDist, xDist)) + 90
         self.image = pygame.transform.rotate(self.basePlayerImage, -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
+        #startPosX = (self.hitboxRect.centerx - camera.offset.x) * zoomLevel
+        #startPosY = (self.hitboxRect.centery - camera.offset.y) * zoomLevel
+        #pygame.draw.line(screen, "green", (startPosX, startPosY), (startPosX + self.lookDirection.x * 20, startPosY + self.lookDirection.y * 20)) 
     
     def TakeDamage(self, damage):
         self.health -= damage
@@ -228,6 +232,126 @@ class Player(MoveObject):
         self.CheckControls()
         self.Move(True)
         self.RotateToMouse()
+        self.UseItem()
+        if (time.time() - self.timeSinceTint) < self.redTintDuration:
+            self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
+
+class Survivor(MoveObject):
+    def __init__(self, startingPosition):
+        super().__init__(startingPosition, 300)
+        
+        # Create the image of the survivor
+        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
+        self.baseImage = self.image
+
+        # Get a rectangle object that shows where our image is
+        self.hitboxRect = self.baseImage.get_rect(center = self.pos)
+        self.rect = self.hitboxRect.copy()
+        self.oldRect = self.hitboxRect.copy()
+        self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
+        self.lookDirection = 0
+        self.currentItem = Fists
+        self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*2.5, self.hitboxRect.height*2.5)
+        self.target = None # The actual target of the survivor
+        self.pathTarget = None # The target the survivor will move towards which may not be the actual target
+        self.hasTarget = False
+        self.canUse = False # Determines if the survivor can use its item
+        self.health = 100
+        self.localCanPathfind = False # Controls whether the survivor will pathfind
+        self.redTintDuration = 0.1
+        self.timeSinceTint = 0
+        self.override = False
+    
+    def UseItem(self):
+        if self.canUse:
+            self.currentItem.Use(self)  
+    
+    def IsInRange(self):
+        x, y = self.hitboxRect.center
+        Tx, Ty = self.target.hitboxRect.center
+        xDist = Tx - x
+        yDist = Ty - y
+        dist = math.sqrt(xDist**2 + yDist**2)
+        #print("dist:", dist, "| attack range:", self.currentItem.ReturnRange())
+        if dist <= self.currentItem.ReturnRange():
+            return True
+        else:
+            return False
+
+    def RotateToTarget(self):
+        x = (self.hitboxRect.centerx - camera.offset.x) * zoomLevel
+        y = (self.hitboxRect.centery - camera.offset.y) * zoomLevel
+        Tx, Ty = self.pathTarget.rect.center
+        Tx = (Tx - camera.offset.x) * zoomLevel
+        Ty = (Ty - camera.offset.y) * zoomLevel
+        xDist = Tx - x
+        yDist = Ty - y
+        self.lookDirection = pygame.math.Vector2(xDist, yDist)
+        if xDist != 0 or yDist != 0:
+            self.lookDirection = self.lookDirection.normalize()
+        #startPosX = (self.hitboxRect.centerx - camera.offset.x) * zoomLevel
+        #startPosY = (self.hitboxRect.centery - camera.offset.y) * zoomLevel
+        #pygame.draw.line(screen, "red", (startPosX, startPosY), (startPosX + self.lookDirection.x * 20, startPosY + self.lookDirection.y * 20)) 
+        self.angle = math.degrees(math.atan2(yDist, xDist))  
+        velX = self.speed * math.cos(math.radians(self.angle))
+        velY = self.speed * math.sin(math.radians(self.angle))
+        self.direction = pygame.math.Vector2(velX, velY)
+        self.image = pygame.transform.rotate(self.baseImage, -self.angle - 90)
+        self.rect = self.image.get_rect(center = self.hitboxRect.center)
+        self.rect.center = self.hitboxRect.center
+    
+    def TakeDamage(self, damage):
+        self.health -= damage
+        self.timeSinceTint = time.time()
+        if self.health <= 0:
+            dead()
+    
+    def FollowPath(self):
+        # Removes a cell from the path list if collided with
+        if len(self.pathFind.path) == 1 or self.override:
+            self.pathTarget = self.target
+        else:
+            self.pathTarget = self.pathFind.path[0]
+            if self.hitboxRect.colliderect(self.pathFind.path[0].rect):
+                self.pathFind.path.remove(self.pathFind.path[0]) 
+                self.pathTarget = self.pathFind.path[0]   
+    
+    def CheckForZombies(self):
+        # Checks if any zombies are within the range of the survivor 
+        if self.hasTarget:
+            if not self.target.alive():
+                self.hasTarget = False
+        else:
+            listOfRects = [item[0] for item in enemyRects]
+            index = self.rangeRect.collidelist(listOfRects)
+            if index != -1:
+                self.target = enemyRects[index][1]
+                self.hasTarget = True
+        
+    def Update(self):
+        """ Update the position of the survivor """
+        #print("survivor pos:", self.hitboxRect.center)
+        self.oldRect = self.hitboxRect.copy()
+        self.rangeRect.center = self.hitboxRect.center
+        self.CheckForZombies()
+        print("target:", self.target, "| has target:", self.hasTarget)
+        if self.localCanPathfind and self.hasTarget:
+            self.pathFind.Pathfind(self.hitboxRect, self.target.hitboxRect)
+            #cProfile.runctx('self.pathFind.Pathfind(self.hitboxRect, self.target.hitboxRect)', globals(), locals(), sort='cumtime')
+            self.override = self.pathFind.override
+        if len(self.pathFind.path) > 0:
+            print("following?")
+            self.FollowPath()
+        else:
+            self.pathTarget = self.target
+        if self.hasTarget:
+            self.RotateToTarget()
+            if not self.IsInRange():
+                self.Move(True)
+            else:
+                self.currentItem.Use(self)
+        else:
+            self.Move(True)
         self.UseItem()
         if (time.time() - self.timeSinceTint) < self.redTintDuration:
             self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
@@ -398,6 +522,10 @@ class RangedWeapon():
     
     def Shoot(self, user):
         Bullet(user.pos, 1000, self.damage, user.lookDirection)
+    
+    def ReturnRange(self):
+        # Returns the range of the weapon from the user
+        return 100000
 
 class Bullet(MoveObject):
     def __init__(self, startingPos, speed, damage, direction):
@@ -550,13 +678,16 @@ class MeleeWeapon():
     def Attack(self, user):
         # Deals damage to the zombie colliding with the rect
         # of the weapon
-        rangeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle)
+        if user == player:
+            rangeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle)
+        else:
+            rangeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle - 90)
         rangeMask = pygame.mask.from_surface(rangeImage)
         maskImage = rangeMask.to_surface()
         rect = rangeImage.get_rect()
         offsetVector = pygame.math.Vector2(user.hitboxRect.centerx+user.lookDirection.x*16*self.attackRange, user.hitboxRect.centery+user.lookDirection.y*16*self.attackRange)
         rect.center = offsetVector
-        print("rect center:", rect.center)
+        #print("rect center:", rect.center)
         #pygame.draw.rect(screen, "green", rect)
         #screen.blit(maskImage, ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
         screen.blit(pygame.transform.scale(maskImage, (rect.w * zoomLevel, rect.h * zoomLevel)), 
@@ -571,6 +702,10 @@ class MeleeWeapon():
             if rangeMask.overlap(zombieRectMask, offset):
                 zombie = enemyRects[index][1]
                 zombie.TakeDamage(self.damage)
+    
+    def ReturnRange(self):
+        # Returns the range of the weapon from the user
+        return self.baseRangeImage.get_rect().h * self.attackRange
 
 #################### CREATE GROUPS/LISTS ####################
 
@@ -594,6 +729,7 @@ AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprit
 Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4)
 Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0)
 player = Player((850, 850))
+survivor = Survivor((850, 850))
 enemySpawnTop = enemySpawnArea((32, 32), (61*32, 4*32))
 enemySpawnLeft = enemySpawnArea((32*-4, 32*10), (4*32, 37*32))
 enemySpawnRight = enemySpawnArea((32*63, 32*10), (4*32, 37*32))
@@ -602,11 +738,13 @@ enemySpawnBottom = enemySpawnArea((32, 32*52), (61*32, 4*32))
 #################### SETUP ####################
 
 allSprites.add(player)
+allSprites.add(survivor)
 noCollisionSprites.add(enemySpawnTop)
 noCollisionSprites.add(enemySpawnLeft)
 noCollisionSprites.add(enemySpawnRight)
 noCollisionSprites.add(enemySpawnBottom)
 liveSprites.add(player)
+liveSprites.add(survivor)
 
 MapMaker.CreateMap(MapMaker.map)
 for wall in MapMaker.wallList:
@@ -614,6 +752,7 @@ for wall in MapMaker.wallList:
     obstacles.add(wall)
 
 player.CreateLocalRects(allSprites)
+survivor.CreateLocalRects(allSprites)
 zombieAttackSprites.add(player)
 
 background = pygame.Surface(screen.get_size())
@@ -624,6 +763,8 @@ lastTime = time.time()
 VectorFieldPathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
 pathFindPlayer = VectorFieldPathfinding.VectorFieldPathfinding((horizontalCount, verticalCount), player.hitboxRect, pathSprites)
 pathFindPlayer.CreateLocalPathMap()
+Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
+survivor.pathFind.CreateLocalPathMap()
 
 camera = Camera.Camera(player, (screenW, screenH))
 uiManager = UIManager.UIManager()

@@ -18,6 +18,10 @@ class Block(pygame.sprite.Sprite):
         self.distToTarget = 0
         self.visited = False
         self.vector = pygame.math.Vector2(0, 0)
+        self.isTarget = False
+        self.g = 0
+        self.h = 0
+        self.connectedCell = -1
     
     def changeColour(self, colour):
         self.image.fill(colour)
