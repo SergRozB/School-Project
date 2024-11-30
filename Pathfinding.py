@@ -80,6 +80,7 @@ class Pathfinding():
         # The target and origin objects MUST have a rect called "hitboxRect"
         endCellPos = self.GetRectCellPos(targetRect)
         startCellPos = self.GetRectCellPos(originRect)
+        #print("end cell pos:", endCellPos, "| start cell pos:", startCellPos)
         self.SetCellInfo(endCellPos, 'isTarget', True)
         hasCompleted = False
         cellsToSearch = [startCellPos]
@@ -250,8 +251,10 @@ class Pathfinding():
     def GetRectCellPos(self, rect):
         # Gets the position of a cell colliding with the given rect
         indices = rect.collidelistall(self.pathRectList)
+        #print("path rect list:", self.pathRectList)
         for i in indices:
             cell = self.pathList[i]
+            #print("cell pos:", cell.pos)
             if not cell.hasObstacle:
                 return cell.pos
     

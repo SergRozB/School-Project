@@ -53,7 +53,8 @@ print("map W and map h:", mapW, mapH)
 horizontalCount = math.ceil(mapW/blockWidth) 
 verticalCount = math.ceil((mapH-top)/blockWidth) 
 print("horz, vert:", horizontalCount, verticalCount)
-
+mouseButtonPressed = False
+mouseButtonHeld = False
 dt = 0
 
 class MoveObject(pygame.sprite.Sprite):
@@ -134,7 +135,7 @@ class Player(MoveObject):
     # Constructor. 
     def __init__(self, startingPosition):
         # Call the parent class (Sprite) constructor
-        super().__init__(startingPosition, 250)
+        super().__init__(startingPosition, 300)
  
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
@@ -157,8 +158,11 @@ class Player(MoveObject):
         self.timeSinceTint = 0
 
     def UseItem(self):
-        if self.canUse:
-            self.GetCurrentItem().Use(self)
+        currentItem = self.GetCurrentItem()
+        if mouseButtonHeld and currentItem.isWeapon:
+            currentItem.Use(self)
+        elif mouseButtonPressed and not currentItem.isWeapon:
+            currentItem.Use(self)
     
     def GetCurrentItem(self):
         return self.inventory[self.currentItem]
@@ -225,6 +229,12 @@ class Player(MoveObject):
         self.timeSinceTint = time.time()
         if self.health <= 0:
             dead()
+    
+    def CheckSelection(self):
+        for survivor in survivorSprites:
+            mPos = pygame.mouse.get_pos()
+            if mPos[0] in range(survivor.rect.left, survivor.rect.right) and mPos[1] in range(survivor.rect.top, survivor.rect.bottom):
+                pygame.draw.rect(screen, "green", survivor.rect, width = 2)
         
     def Update(self):
         """ Update the position of the player """
@@ -249,7 +259,6 @@ class Survivor(MoveObject):
         self.hitboxRect = self.baseImage.get_rect(center = self.pos)
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
-        self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
         self.lookDirection = 0
         self.currentItem = copy.copy(Fists)
         self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*2.5, self.hitboxRect.height*2.5)
@@ -258,10 +267,14 @@ class Survivor(MoveObject):
         self.hasTarget = False
         self.canUse = False # Determines if the survivor can use its item
         self.health = 100
-        self.localCanPathfind = False # Controls whether the survivor will pathfind
         self.redTintDuration = 0.1
         self.timeSinceTint = 0
-        self.override = False
+        self.override = False # Overrides the pathfinding
+        self.timeSincePathfind = 0 # Records the time since the last path find operation
+        self.pathfindRate = 0.2 # Controls how often the survivor can pathfind in seconds
+    
+    def InitialisePathfinding(self):
+        self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
     
     def UseItem(self):
         if self.canUse:
@@ -319,16 +332,17 @@ class Survivor(MoveObject):
     
     def CheckForZombies(self):
         # Checks if any zombies are within the range of the survivor 
+        listOfRects = [item[0] for item in enemyRects]
+        index = self.rangeRect.collidelist(listOfRects)
+        if index != -1:
+            self.target = enemyRects[index][1]
+            self.hasTarget = True
+
         if self.hasTarget:
             if not self.target.alive():
                 self.hasTarget = False
-        else:
-            listOfRects = [item[0] for item in enemyRects]
-            index = self.rangeRect.collidelist(listOfRects)
-            print("index:", index)
-            if index != -1:
-                self.target = enemyRects[index][1]
-                self.hasTarget = True
+                self.direction = pygame.math.Vector2(0, 0)
+            
         
     def Update(self):
         """ Update the position of the survivor """
@@ -336,13 +350,15 @@ class Survivor(MoveObject):
         self.oldRect = self.hitboxRect.copy()
         self.rangeRect.center = self.hitboxRect.center
         self.CheckForZombies()
-        print("target:", self.target, "| has target:", self.hasTarget)
-        if self.localCanPathfind and self.hasTarget:
+        #print("target:", self.target, "| has target:", self.hasTarget)
+        if (time.time() - self.timeSincePathfind) >= self.pathfindRate and self.hasTarget and not self.override:
             self.pathFind.Pathfind(self.hitboxRect, self.target.hitboxRect)
             #cProfile.runctx('self.pathFind.Pathfind(self.hitboxRect, self.target.hitboxRect)', globals(), locals(), sort='cumtime')
             self.override = self.pathFind.override
+            self.timeSincePathfind = time.time()
+        else:
+            showPathSprites.empty()
         if len(self.pathFind.path) > 0:
-            print("following?")
             self.FollowPath()
         elif self.hasTarget:
             self.pathTarget = self.target
@@ -458,6 +474,9 @@ class Enemy(MoveObject):
                 player.points += 1
             self.died = True
             self.kill()
+            player.localRects.pop(self)
+            for surivor in survivorSprites:
+                survivor.localRects.pop(self)
             enemyRects.remove((self.hitboxRect, self))
 
     def Update(self):
@@ -504,6 +523,7 @@ class RangedWeapon():
         self.lastFired = 0
         self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
         self.price = price
+        self.isWeapon = True
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
@@ -658,6 +678,9 @@ class WaveManager():
             enemySprites.add(enemy)
             enemyRects.append((enemy.hitboxRect, enemy))
             enemy.CreateLocalRects(allSprites)
+        player.CreateLocalRects(allSprites)
+        for survivor in survivorSprites:
+            survivor.CreateLocalRects(allSprites)
 
 class MeleeWeapon():
     def __init__(self, attackRange, attackSpeed, damage, imagePath, price):
@@ -669,6 +692,7 @@ class MeleeWeapon():
         self.baseRangeImage = pygame.transform.scale(self.baseRangeImage, (self.baseRangeImage.get_rect().w, self.baseRangeImage.get_rect().h * attackRange))
         self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
         self.price = price
+        self.isWeapon = True
     
     def Use(self, user):
         # Function called when the weapon is used
@@ -702,7 +726,9 @@ class MeleeWeapon():
             zombieRectMask = pygame.mask.Mask((zombieRect.width, zombieRect.height))
             zombieRectMask.fill()
             offset = (rect.x - zombieRect.x, rect.y - zombieRect.y)
-            if rangeMask.overlap(zombieRectMask, offset):
+            if rangeMask.overlap(zombieRectMask, offset) and index < len(enemyRects):
+                print("INDEX:", index, "| len:", len(listOfRects))
+                print("enemy rects:", enemyRects)
                 zombie = enemyRects[index][1]
                 zombie.TakeDamage(self.damage)
     
@@ -725,6 +751,7 @@ enemyRects = [] # 2d array of enemy rects and sprites ---> (enemy rect, enemy sp
 UISprites = pygame.sprite.Group()
 zombieAttackSprites = pygame.sprite.Group() # Group of sprites the zombies will attack
 storeItems = []
+survivorSprites = pygame.sprite.Group()
 
 #################### CREATE OBJECTS ####################
 
@@ -748,6 +775,7 @@ noCollisionSprites.add(enemySpawnRight)
 noCollisionSprites.add(enemySpawnBottom)
 liveSprites.add(player)
 liveSprites.add(survivor)
+survivorSprites.add(survivor)
 
 MapMaker.CreateMap(MapMaker.map)
 for wall in MapMaker.wallList:
@@ -766,7 +794,8 @@ lastTime = time.time()
 VectorFieldPathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
 pathFindPlayer = VectorFieldPathfinding.VectorFieldPathfinding((horizontalCount, verticalCount), player.hitboxRect, pathSprites)
 pathFindPlayer.CreateLocalPathMap()
-Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
+#Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
+survivor.InitialisePathfinding()
 survivor.pathFind.CreateLocalPathMap()
 
 camera = Camera.Camera(player, (screenW, screenH))
@@ -805,6 +834,8 @@ def main():
     global lastTime
     global dt
     global lastTimeSincePath
+    global mouseButtonHeld
+    global mouseButtonPressed
     while True:
         dt = time.time() - lastTime
         lastTime = time.time()
@@ -821,24 +852,28 @@ def main():
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 #print("Mpos:", pygame.mouse.get_pos())
-                player.canUse = True
                 uiManager.mouseButtonPressed = True
+                mouseButtonHeld = True
+                mouseButtonPressed = True
 
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                player.canUse = False
                 uiManager.mouseButtonPressed = False
+                mouseButtonHeld = False
             
             if event.type == pygame.MOUSEWHEEL:
                 if event.y == 1:
                     player.ScrollInventory("up")
                 elif event.y == -1:
                     player.ScrollInventory("down")
+        
 
         for sprite in liveSprites:
             sprite.Update()
             #print("name:", type(sprite).__name__)
             #cProfile.runctx('sprite.Update()', globals(), locals(), sort='cumtime')
             #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+        uiManager.mouseButtonPressed = mouseButtonPressed
+        mouseButtonPressed = False
         camera.scroll()
         for sprite in allSprites:
             drawnRect = sprite.rect.copy()
@@ -848,6 +883,13 @@ def main():
                         ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
             #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
         #pygame.draw.rect(screen, "green", Axe.rangeRect)
+
+        #for sprite in showPathSprites:
+            #drawnRect = sprite.rect.copy()
+            #drawnRect.width = sprite.rect.width * zoomLevel
+            #drawnRect.height = sprite.rect.height * zoomLevel
+            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
+                        #((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         
         #for sprite in pathSprites:
             #drawnRect = sprite.rect.copy()
