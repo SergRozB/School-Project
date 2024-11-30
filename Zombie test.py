@@ -41,6 +41,7 @@ white = (255, 255, 255)
 black = (0, 0, 0)
 red = (255, 0, 0)
 green = (0, 255, 0)
+lightBlue = (140, 255, 255)
 darkSoftRed = (194, 36, 25)
 screen = pygame.display.set_mode([screenW, screenH])
 clock = pygame.time.Clock()
@@ -49,10 +50,10 @@ timeInterval = 500 # Time interval for when to pathfind in miliseconds
 canPathfind = False
 allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when pathfinding occurs
 
-print("map W and map h:", mapW, mapH)
+#print("map W and map h:", mapW, mapH)
 horizontalCount = math.ceil(mapW/blockWidth) 
 verticalCount = math.ceil((mapH-top)/blockWidth) 
-print("horz, vert:", horizontalCount, verticalCount)
+#print("horz, vert:", horizontalCount, verticalCount)
 mouseButtonPressed = False
 mouseButtonHeld = False
 dt = 0
@@ -260,8 +261,8 @@ class Survivor(MoveObject):
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
         self.lookDirection = 0
-        self.currentItem = copy.copy(Fists)
-        self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*2.5, self.hitboxRect.height*2.5)
+        self.currentItem = copy.copy(AutoRifle)
+        self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*5, self.hitboxRect.height*5)
         self.target = None # The actual target of the survivor
         self.pathTarget = None # The target the survivor will move towards which may not be the actual target
         self.hasTarget = False
@@ -288,25 +289,33 @@ class Survivor(MoveObject):
         dist = math.sqrt(xDist**2 + yDist**2)
         #print("dist:", dist, "| attack range:", self.currentItem.ReturnRange())
         if dist <= self.currentItem.ReturnRange():
+            print("IN RANGE")
             return True
         else:
             return False
 
     def RotateToTarget(self):
+        # Rotates the survivor to the target object, but moves it towards the path target
+        # The path target is generally the A* path
         x = (self.hitboxRect.centerx - camera.offset.x) * zoomLevel
         y = (self.hitboxRect.centery - camera.offset.y) * zoomLevel
-        Tx, Ty = self.pathTarget.rect.center
+        Tx, Ty = self.target.rect.center
+        pTx, pTy = self.pathTarget.rect.center
         Tx = (Tx - camera.offset.x) * zoomLevel
         Ty = (Ty - camera.offset.y) * zoomLevel
+        pTx = (pTx - camera.offset.x) * zoomLevel
+        pTy = (pTy - camera.offset.y) * zoomLevel
         xDist = Tx - x
         yDist = Ty - y
+        xpDist = pTx - x
+        ypDist = pTy - y
         self.lookDirection = pygame.math.Vector2(xDist, yDist)
         if xDist != 0 or yDist != 0:
             self.lookDirection = self.lookDirection.normalize()
         #startPosX = (self.hitboxRect.centerx - camera.offset.x) * zoomLevel
         #startPosY = (self.hitboxRect.centery - camera.offset.y) * zoomLevel
         #pygame.draw.line(screen, "red", (startPosX, startPosY), (startPosX + self.lookDirection.x * 20, startPosY + self.lookDirection.y * 20)) 
-        self.angle = math.degrees(math.atan2(yDist, xDist))  
+        self.angle = math.degrees(math.atan2(ypDist, xpDist))  
         velX = self.speed * math.cos(math.radians(self.angle))
         velY = self.speed * math.sin(math.radians(self.angle))
         self.direction = pygame.math.Vector2(velX, velY)
@@ -364,12 +373,10 @@ class Survivor(MoveObject):
             self.pathTarget = self.target
         if self.hasTarget:
             self.RotateToTarget()
-            if not self.IsInRange():
-                self.Move(True)
-            else:
+            if self.IsInRange():
                 self.currentItem.Use(self)
-        else:
-            self.Move(True)
+            else:
+                self.Move(True)
         self.UseItem()
         if (time.time() - self.timeSinceTint) < self.redTintDuration:
             self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
@@ -591,7 +598,7 @@ class Bullet(MoveObject):
         collidedWith = self.hitboxRect.collidedict(self.localRects)
         if collidedWith:
             spriteCollidedWith = collidedWith[0]
-            if spriteCollidedWith != player and spriteCollidedWith not in bullets and spriteCollidedWith in allSprites:
+            if spriteCollidedWith != player and spriteCollidedWith not in survivorSprites and spriteCollidedWith not in bullets and spriteCollidedWith in allSprites:
                 print("sprite name:", type(spriteCollidedWith).__name__)
                 if spriteCollidedWith in liveSprites:
                     self.DealDamage(spriteCollidedWith)
@@ -736,6 +743,34 @@ class MeleeWeapon():
         # Returns the range of the weapon from the user
         return self.baseRangeImage.get_rect().h * self.attackRange
 
+def DrawMinimap():
+    size = 0.1
+    image = pygame.Surface((32, 32))
+    backImage = pygame.Surface((mapW, mapH))
+    backImage.fill(black)
+    backRect = backImage.get_rect()
+    backRect.topleft = (0, 0)
+    screen.blit(pygame.transform.scale(backImage, (backRect.w * size, backRect.h * size)), 
+                    (backRect.x + firstOccurrence*32 * size, backRect.y * size))
+    for sprite in allSprites:
+        if sprite == player:
+            image = pygame.Surface((32, 32))
+            image.fill(green)
+            drawnRect = image.get_rect(center = sprite.hitboxRect.center)
+        elif sprite in survivorSprites:
+            image = pygame.Surface((32, 32))
+            image.fill(lightBlue)
+            drawnRect = image.get_rect(center = sprite.hitboxRect.center)
+        elif sprite in enemySprites:
+            image = pygame.Surface((32, 32))
+            image.fill(red)
+            drawnRect = image.get_rect(center = sprite.hitboxRect.center)
+        else:
+            image = pygame.Surface((32, 32))
+            image.fill(white)
+            drawnRect = image.get_rect(center = sprite.hitboxRect.center)
+        screen.blit(pygame.transform.scale(image, (drawnRect.w * size, drawnRect.h * size)), 
+                    (drawnRect.x * size, drawnRect.y * size))
 #################### CREATE GROUPS/LISTS ####################
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
@@ -902,7 +937,11 @@ def main():
             #drawnRect = sprite.rect.copy()
             #drawnRect.width = sprite.rect.width * zoomLevel
             #drawnRect.height = sprite.rect.height * zoomLevel
-            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
+            # ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+
+        DrawMinimap()
+
         #pathFindPlayer.DrawVectorMap(screen, camera)    
         #pathFindPlayer.DrawHeatMap(screen, camera)
         waveManager.Update(enemySprites, uiManager)
