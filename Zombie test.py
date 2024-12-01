@@ -54,8 +54,9 @@ allowPathfinding = pygame.USEREVENT+1 # Custom time event for controlling when p
 horizontalCount = math.ceil(mapW/blockWidth) 
 verticalCount = math.ceil((mapH-top)/blockWidth) 
 #print("horz, vert:", horizontalCount, verticalCount)
-mouseButtonPressed = False
-mouseButtonHeld = False
+leftMButtonPressed = False
+leftMButtonHeld = False
+rightMButtonPressed = False
 dt = 0
 
 class MoveObject(pygame.sprite.Sprite):
@@ -147,22 +148,24 @@ class Player(MoveObject):
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
 
-        self.lookDirection = 0
-        self.inventory = [Fists]
-        self.currentItem = 0
+        self.lookDirection = 0 # Stores the direction the player is looking in
+        self.inventory = [Fists] # List containing inventory objects
+        self.currentItem = 0 # Stores the position of the current item in the inventory list
 
-        self.canUse = False
-        self.health = 100
-        self.points = 0
+        self.canUse = False # Stores if the player can use an item
+        self.health = 100 # Stores the health of the player
+        self.points = 0 # Stores the number of points the player has
 
-        self.redTintDuration = 0.1
-        self.timeSinceTint = 0
+        self.redTintDuration = 0.1 # The length of time the red tint should last for
+        self.timeSinceTint = 0 # The time since the last red tint
+        self.selectedSurvivor = None # Stores the selected Survivor
+        self.givingCommand = False # Stores if the player is giving a command to check for inputs
 
     def UseItem(self):
         currentItem = self.GetCurrentItem()
-        if mouseButtonHeld and currentItem.isWeapon:
+        if leftMButtonHeld and currentItem.isWeapon:
             currentItem.Use(self)
-        elif mouseButtonPressed and not currentItem.isWeapon:
+        elif leftMButtonPressed and not currentItem.isWeapon:
             currentItem.Use(self)
     
     def GetCurrentItem(self):
@@ -226,25 +229,113 @@ class Player(MoveObject):
         #pygame.draw.line(screen, "green", (startPosX, startPosY), (startPosX + self.lookDirection.x * 20, startPosY + self.lookDirection.y * 20)) 
     
     def TakeDamage(self, damage):
+        # When called, takes the input damage from the health
+        # If the health reached below or equal to zero, the 'dead' game loop is run
         self.health -= damage
         self.timeSinceTint = time.time()
         if self.health <= 0:
             dead()
     
     def CheckSelection(self):
+        # Manages the selection of survivors to give them commands
+        wiggleRoom = 50 # Defines the extra room around the survivor hitbox where the player can also select the survivor
+        clickedSurvivor = False
+        if self.selectedSurvivor != None:
+            colour = 0
+            if self.givingCommand:
+                colour = "purple"
+            else:
+                colour = "red"
+            survivorX = (self.selectedSurvivor.hitboxRect.centerx - camera.offset.x) * zoomLevel
+            survivorY = (self.selectedSurvivor.hitboxRect.centery - camera.offset.y) * zoomLevel
+            rectToDraw = pygame.rect.Rect(0, 0, self.selectedSurvivor.hitboxRect.w + wiggleRoom, self.selectedSurvivor.hitboxRect.h + wiggleRoom)
+            rectToDraw.center = (survivorX, survivorY)
+            pygame.draw.rect(screen, colour, rectToDraw, 2)
+
         for survivor in survivorSprites:
+            survivorX = (survivor.hitboxRect.centerx - camera.offset.x) * zoomLevel
+            survivorY = (survivor.hitboxRect.centery - camera.offset.y) * zoomLevel
+            survivorLeft = int((survivor.hitboxRect.left - camera.offset.x) * zoomLevel) - wiggleRoom
+            survivorRight = int((survivor.hitboxRect.right - camera.offset.x) * zoomLevel) + wiggleRoom
+            survivorTop = int((survivor.hitboxRect.top - camera.offset.y) * zoomLevel) - wiggleRoom
+            survivorBottom = int((survivor.hitboxRect.bottom - camera.offset.y) * zoomLevel) + wiggleRoom
             mPos = pygame.mouse.get_pos()
-            if mPos[0] in range(survivor.rect.left, survivor.rect.right) and mPos[1] in range(survivor.rect.top, survivor.rect.bottom):
-                pygame.draw.rect(screen, "green", survivor.rect, width = 2)
-        
+            if mPos[0] in range(survivorLeft, survivorRight) and mPos[1] in range(survivorTop, survivorBottom) and not self.selectedSurvivor == survivor:
+                rectToDraw = pygame.rect.Rect(0, 0, survivor.hitboxRect.w + wiggleRoom, survivor.hitboxRect.h + wiggleRoom)
+                rectToDraw.center = (survivorX, survivorY)
+                pygame.draw.rect(screen, "green", rectToDraw, 2)
+                if rightMButtonPressed:
+                    self.selectedSurvivor = survivor
+                    clickedSurvivor = True
+        if not clickedSurvivor and rightMButtonPressed:
+            self.selectedSurvivor = None
+    
+    def SurvivorCommands(self):
+        # Carries out the commands on the selected survivor if the relevant key is pressed
+        if not self.givingCommand:
+            keys = pygame.key.get_pressed()
+            # Checks if the f key is pressed, and if so carries out the follow command
+            if keys[pygame.K_f]:
+                self.selectedSurvivor.target = self
+                self.selectedSurvivor.hasTarget = True
+                self.selectedSurvivor = None
+
+            # Checks if the g key is pressed, and if so carries out the give current item command
+            if keys[pygame.K_g]:
+                currentItem = self.GetCurrentItem()
+                if not currentItem.isDefault:
+                    print("gave", type(currentItem).__name__,"!")
+                    self.selectedSurvivor.currentItem = copy.copy(currentItem)
+                    self.inventory.remove(currentItem)
+                    self.currentItem -= 1
+                else:
+                    print("You cant give fists!")
+                self.selectedSurvivor = None
+
+            # Checks if the q key is pressed, and if so carries out the go to point command
+            if keys[pygame.K_q]:
+                print("Giving command")
+                self.givingCommand = True
+    
+    def GiveCommand(self):
+        if rightMButtonPressed:
+            mPos = pygame.mouse.get_pos()
+            mx = (mPos[0] + camera.offset.x) * zoomLevel
+            my = (mPos[1] + camera.offset.y) * zoomLevel
+            tempObject = TempObject((mx, my))
+            canMoveToPos = False
+            listOfSprites = pygame.sprite.spritecollide(tempObject, allSprites, False)
+            if len(listOfSprites) > 0:
+                for sprite in listOfSprites:
+                    if sprite not in obstacles:
+                        canMoveToPos = True
+            else:
+                canMoveToPos = True
+            
+            if canMoveToPos:
+                #allSprites.add(tempObject)
+                self.selectedSurvivor.target = tempObject
+                self.selectedSurvivor.followingCommand = True
+                self.selectedSurvivor.hasTarget = True
+                self.selectedSurvivor = None
+                self.givingCommand = False
+            else:
+                print("Can't access location!")
+                self.selectedSurvivor = None
+                self.givingCommand = False
+
     def Update(self):
         """ Update the position of the player """
         self.oldRect = self.hitboxRect.copy()
-
+        if self.givingCommand:
+            self.GiveCommand()
         self.CheckControls()
         self.Move(True)
         self.RotateToMouse()
         self.UseItem()
+        self.CheckSelection()
+        if self.selectedSurvivor != None:
+            self.SurvivorCommands()
         if (time.time() - self.timeSinceTint) < self.redTintDuration:
             self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
 
@@ -261,8 +352,8 @@ class Survivor(MoveObject):
         self.rect = self.hitboxRect.copy()
         self.oldRect = self.hitboxRect.copy()
         self.lookDirection = 0
-        self.currentItem = copy.copy(AutoRifle)
-        self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.hitboxRect.width*5, self.hitboxRect.height*5)
+        self.currentItem = copy.copy(Fists)
+        self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, 800, 800)
         self.target = None # The actual target of the survivor
         self.pathTarget = None # The target the survivor will move towards which may not be the actual target
         self.hasTarget = False
@@ -273,27 +364,43 @@ class Survivor(MoveObject):
         self.override = False # Overrides the pathfinding
         self.timeSincePathfind = 0 # Records the time since the last path find operation
         self.pathfindRate = 0.2 # Controls how often the survivor can pathfind in seconds
+        self.followingCommand = False # Stores if the survivor is following a command, to stop doing other things
     
     def InitialisePathfinding(self):
+        # Creates pathfinding object in survivor when called
         self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
     
     def UseItem(self):
+        # Uses current item when called
         if self.canUse:
             self.currentItem.Use(self)  
     
     def IsInRange(self):
+        # Determins whether the survivor is close enough to its target
+        # If target is zombie, survivor goes to attacking range of zombie 
+        # Else if target is player, survivor stays further away from the player
+        keepDistance = 0 # Determins the distance the survivor should stay away from the target
+        if self.target == player:
+            keepDistance = 80
+        elif self.followingCommand:
+            keepDistance = 32
+        else:
+            keepDistance = self.currentItem.ReturnRange()*0.4
         x, y = self.hitboxRect.center
         Tx, Ty = self.target.hitboxRect.center
         xDist = Tx - x
         yDist = Ty - y
         dist = math.sqrt(xDist**2 + yDist**2)
         #print("dist:", dist, "| attack range:", self.currentItem.ReturnRange())
-        if dist <= self.currentItem.ReturnRange():
-            print("IN RANGE")
+        if dist <= keepDistance:
+            print("in range!")
+            if self.followingCommand:
+                self.followingCommand = False
+                self.hasTarget = False
             return True
         else:
             return False
-
+            
     def RotateToTarget(self):
         # Rotates the survivor to the target object, but moves it towards the path target
         # The path target is generally the A* path
@@ -315,9 +422,10 @@ class Survivor(MoveObject):
         #startPosX = (self.hitboxRect.centerx - camera.offset.x) * zoomLevel
         #startPosY = (self.hitboxRect.centery - camera.offset.y) * zoomLevel
         #pygame.draw.line(screen, "red", (startPosX, startPosY), (startPosX + self.lookDirection.x * 20, startPosY + self.lookDirection.y * 20)) 
-        self.angle = math.degrees(math.atan2(ypDist, xpDist))  
-        velX = self.speed * math.cos(math.radians(self.angle))
-        velY = self.speed * math.sin(math.radians(self.angle))
+        self.moveAngle = math.degrees(math.atan2(ypDist, xpDist))  
+        self.angle = math.degrees(math.atan2(yDist, xDist))  
+        velX = self.speed * math.cos(math.radians(self.moveAngle))
+        velY = self.speed * math.sin(math.radians(self.moveAngle))
         self.direction = pygame.math.Vector2(velX, velY)
         self.image = pygame.transform.rotate(self.baseImage, -self.angle - 90)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
@@ -352,14 +460,15 @@ class Survivor(MoveObject):
                 self.hasTarget = False
                 self.direction = pygame.math.Vector2(0, 0)
             
-        
     def Update(self):
         """ Update the position of the survivor """
         #print("survivor pos:", self.hitboxRect.center)
         self.oldRect = self.hitboxRect.copy()
         self.rangeRect.center = self.hitboxRect.center
-        self.CheckForZombies()
+        if not self.followingCommand:
+            self.CheckForZombies()
         #print("target:", self.target, "| has target:", self.hasTarget)
+
         if (time.time() - self.timeSincePathfind) >= self.pathfindRate and self.hasTarget and not self.override:
             self.pathFind.Pathfind(self.hitboxRect, self.target.hitboxRect)
             #cProfile.runctx('self.pathFind.Pathfind(self.hitboxRect, self.target.hitboxRect)', globals(), locals(), sort='cumtime')
@@ -367,16 +476,20 @@ class Survivor(MoveObject):
             self.timeSincePathfind = time.time()
         else:
             showPathSprites.empty()
+
         if len(self.pathFind.path) > 0:
             self.FollowPath()
         elif self.hasTarget:
             self.pathTarget = self.target
+
         if self.hasTarget:
             self.RotateToTarget()
             if self.IsInRange():
-                self.currentItem.Use(self)
+                if self.target != player:
+                    self.currentItem.Use(self)
             else:
                 self.Move(True)
+
         self.UseItem()
         if (time.time() - self.timeSinceTint) < self.redTintDuration:
             self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
@@ -427,7 +540,6 @@ class Enemy(MoveObject):
         # To prevent enemy going through walls when spawning
         timeToWait = 0.1
         timeSince = (time.time() - self.initialTime)
-        print("time since:", timeSince)
         if timeSince >= timeToWait:
             #print("r rh")
             self.wait = False
@@ -519,7 +631,7 @@ class Enemy(MoveObject):
             #self.direction.y += y*factor
 
 class RangedWeapon():
-    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed, imagePath, price):
+    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed, imagePath, price, isDefault):
         self.damage = damage
         self.fireRate = fireRate
         self.spread = spread
@@ -531,6 +643,7 @@ class RangedWeapon():
         self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
         self.price = price
         self.isWeapon = True
+        self.isDefault = isDefault
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
@@ -619,7 +732,7 @@ class enemySpawnArea(pygame.sprite.Sprite):
         self.pos = pygame.math.Vector2(pos[0], pos[1])
         self.rect = self.image.get_rect(topleft = self.pos)
 
-class TestWall(pygame.sprite.Sprite):
+class TempObject(pygame.sprite.Sprite):
     def __init__(self, pos):
         super().__init__()
         self.image = pygame.image.load("SpriteImages\Tile1.png")
@@ -645,9 +758,9 @@ class WaveManager():
         if self.waveCount == 1:
             self.spawnNumber = 1
         elif self.waveCount == 2:
-            self.spawnNumber = 10
+            self.spawnNumber = 2
         elif self.waveCount == 3:
-            self.spawnNumber = 15
+            self.spawnNumber = 4
         for spawnArea in self.spawnList:
             self.SpawnZombies(spawnArea)
 
@@ -687,10 +800,11 @@ class WaveManager():
             enemy.CreateLocalRects(allSprites)
         player.CreateLocalRects(allSprites)
         for survivor in survivorSprites:
+            print("survivrorovrv")
             survivor.CreateLocalRects(allSprites)
 
 class MeleeWeapon():
-    def __init__(self, attackRange, attackSpeed, damage, imagePath, price):
+    def __init__(self, attackRange, attackSpeed, damage, imagePath, price, isDefault):
         self.attackRange = attackRange
         self.attackSpeed = attackSpeed
         self.damage = damage
@@ -700,6 +814,7 @@ class MeleeWeapon():
         self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
         self.price = price
         self.isWeapon = True
+        self.isDefault = isDefault
     
     def Use(self, user):
         # Function called when the weapon is used
@@ -790,9 +905,9 @@ survivorSprites = pygame.sprite.Group()
 
 #################### CREATE OBJECTS ####################
 
-AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15)
-Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4)
-Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0)
+AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, False)
+Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False)
+Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0, True)
 player = Player((850, 850))
 survivor = Survivor((850, 850))
 enemySpawnTop = enemySpawnArea((32, 32), (61*32, 4*32))
@@ -869,8 +984,9 @@ def main():
     global lastTime
     global dt
     global lastTimeSincePath
-    global mouseButtonHeld
-    global mouseButtonPressed
+    global leftMButtonHeld
+    global leftMButtonPressed
+    global rightMButtonPressed
     while True:
         dt = time.time() - lastTime
         lastTime = time.time()
@@ -887,13 +1003,14 @@ def main():
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 #print("Mpos:", pygame.mouse.get_pos())
-                uiManager.mouseButtonPressed = True
-                mouseButtonHeld = True
-                mouseButtonPressed = True
+                leftMButtonHeld = True
+                leftMButtonPressed = True
+            
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                rightMButtonPressed = True
 
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                uiManager.mouseButtonPressed = False
-                mouseButtonHeld = False
+                leftMButtonHeld = False
             
             if event.type == pygame.MOUSEWHEEL:
                 if event.y == 1:
@@ -907,8 +1024,9 @@ def main():
             #print("name:", type(sprite).__name__)
             #cProfile.runctx('sprite.Update()', globals(), locals(), sort='cumtime')
             #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
-        uiManager.mouseButtonPressed = mouseButtonPressed
-        mouseButtonPressed = False
+        uiManager.mouseButtonPressed = leftMButtonPressed
+        leftMButtonPressed = False
+        rightMButtonPressed = False
         camera.scroll()
         for sprite in allSprites:
             drawnRect = sprite.rect.copy()
