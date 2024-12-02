@@ -385,7 +385,7 @@ class Survivor(MoveObject):
         elif self.followingCommand:
             keepDistance = 32
         else:
-            keepDistance = self.currentItem.ReturnRange()*0.4
+            keepDistance = self.currentItem.ReturnRange()*0.6
         x, y = self.hitboxRect.center
         Tx, Ty = self.target.hitboxRect.center
         xDist = Tx - x
