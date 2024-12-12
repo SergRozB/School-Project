@@ -1,9 +1,13 @@
 import pygame
 import PathfindingBlock
+import cProfile
 
 white = (255, 255, 255)
 red = (255, 0, 0)
 purple = (128, 0, 128)
+posLookUp = {}
+vertCount = 0
+horzCount = 0
 
 class VectorFieldPathfinding():
     def __init__(self, blockCount, targetRect, pathSprites):
@@ -27,6 +31,7 @@ class VectorFieldPathfinding():
         self.CleanPath()
         self.targetPos = self.GetRectCellPos(self.targetRect)
         self.GenerateHeatMap(self.targetPos)
+        #cProfile.runctx('self.GenerateHeatMap(self.targetPos)', globals(), locals(), sort='tottime')
         self.GenerateVectorField()
 
     def GetDirection(self, rect):
@@ -156,9 +161,11 @@ class VectorFieldPathfinding():
         self.obstacleI = 2
         self.visitedI = 3
         self.vectorI = 4
+        self.localPathSize = 0
         for sprite in self.pathSprites:
             self.localPathMap[sprite.pos] = (sprite.distToTarget, sprite.nextToWall, sprite.hasObstacle, sprite.visited, sprite.vector)
             self.posList.append(sprite.pos)
+            self.localPathSize += 1
         self.FixEdges()
     
     def FixEdges(self):
@@ -207,12 +214,14 @@ class VectorFieldPathfinding():
         return cell[1][self.wantedDict[wanted]]
 
     def CheckExist(self, pos):
-        y = pos[1]
-        x = pos[0]
-        calculatedIndex = (y-1)*self.horizontalCount + x-1
+        """calculatedIndex = (pos[1]-1)*self.horizontalCount + pos[0]-1
         if calculatedIndex >= len(self.localPathMap):
             return False
         elif self.posList[calculatedIndex] == pos:
+            return True
+        else:
+            return False"""
+        if pos in posLookUp:
             return True
         else:
             return False
@@ -222,9 +231,7 @@ class VectorFieldPathfinding():
         if pos == -1 or type(pos) == str:
             print("ERROR: bad pos")
             return "no pos"
-        y = pos[1]
-        x = pos[0]
-        cell = self.localPathMap[(y-1)*self.horizontalCount + x-1]
+        cell = self.localPathMap[(pos[1]-1)*self.horizontalCount + pos[0]-1]
         if cell[0] == pos:
             cell[1][self.wantedDict[wanted]] = change
     
@@ -272,10 +279,15 @@ class VectorFieldPathfinding():
 def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup, top, firstWallIndex):
     # Needs to be used before pathfinding method
     # Block count needs to be array in form (horizontalCount, verticalCount)
+    global vertCount
+    global horzCount
     verticalCount = blockCount[1]
     horizontalCount = blockCount[0]
+    vertCount = blockCount[1]
+    horzCount = blockCount[0]
     top = top
     y = 0
+    count = 0
     for row in range(verticalCount):
         y += 1
         x = 0
@@ -284,6 +296,8 @@ def CreateObstacleMap(blockCount, blockWidth, obstacles, pathSpritesGroup, top, 
             block = PathfindingBlock.Block(column * (blockWidth) + firstWallIndex*blockWidth, top, blockWidth, white)
             block.pos = (x,y)
             pathSpritesGroup.add(block)
+            posLookUp[(x,y)] = count
+            count += 1
         top += blockWidth
 
     for block in pathSpritesGroup:

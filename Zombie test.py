@@ -994,7 +994,7 @@ def main():
         if timeSincePath >= 0.5:
             #print("time:", timeSincePath)
             pathFindPlayer.CreateMap()
-            #cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='tottime')
+            cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='tottime')
             lastTimeSincePath = time.time()
         screen.fill(black)
         for event in pygame.event.get():

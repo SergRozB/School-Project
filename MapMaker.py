@@ -13,45 +13,45 @@ map = """WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
          W                                                             W
     WWWWWW           WWWWWWWWW   WWWWWWWWWWWWWWWW   WWWWWWWW           WWWWWW
     W    W                                                             W    W
-    W    W                                                             W    W
-    W    W                                                             W    W
-    W    W                               www                           W    W
-    W                                    www                           W    W    
-    W                                    www                           W    W
+    W    W      WWW                                                    W    W
+    W    W      WWW                                                    W    W
+    W    W      WWW                      www            WWW            W    W
+    W                                    www            WWW            W    W    
+    W                                    www            WWW            W    W
     W                   www                                            W    W
     W    W              www                                            W    W
     W    W              www                                            W    W
-    W    W                                                             W    W
-    W    W                                                             W    W
-    W    W       WWW                                 www               W    W
+    W    W                            WWW                              W    W
+    W    W                            WWW                              W    W
+    W    W       WWW                  WWW            www               W    W
     W    W       WWW                                 www               W    W
     W    W       WWW                                 www               W    W
     W    W                         www                                 W    W
     W    W                         www                                 W    W
     W    W                         www                                 W    W
-    W                                                                       W  
-    W                WWW                                                    W
-    W                WWW                                                    W
-    W    W           WWW                                               W    W
-    W    W                                                             W    W
+    W                                             WWW                       W  
+    W                WWW                          WWW                       W
+    W                WWW          WWW             WWW                       W
+    W    W           WWW          WWW                                  W    W
+    W    W                        WWW                                  W    W
     W    W                                  WWW                        W    W
-    W    W                                  WWW                        W    W
-    W    W                                  WWW                        W    W
-    W    W                                                             W    W
+    W    W                  WWW             WWW          WWW           W    W
+    W    W                  WWW             WWW          WWW           W    W
+    W    W                  WWW                          WWW           W    W
     W    W                                                             W    W
     W    W                                                             W    W
     W    W             www                                             W    W
     W    W             www                                             W    W
     W                  www                          WWW                     W
-    W                                               WWW                     W
-    W                                               WWW                     W
-    W    W                                                             W    W
+    W                                 WWW           WWW                     W
+    W                                 WWW           WWW                     W
+    W    W                            WWW                              W    W
     W    W                                                             W    W
     W    W                 WWW                                         W    W
-    W    W                 WWW                                         W    W
-    WWWWWW                 WWW                       www               WWWWWW
-         W                                           www               W
-         W                                           www               W
+    W    W                 WWW           WWW                           W    W
+    WWWWWW     WWW         WWW           WWW         www               WWWWWW
+         W     WWW                       WWW         www               W
+         W     WWW                                   www               W
          W                                                             W
          WWWWW   WWWWWWWWWWWWWWWWWWWW   WWWWWWWWWWWWWWWWWWWWWWWW   WWWWW                                         
          W                                                             W
