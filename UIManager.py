@@ -10,6 +10,11 @@ class UIManager():
         self.storeButtonsAdded = False
         self.storeButtonsList = []
         self.itemToBuy = 0
+    
+    def BlitText(self, screen, font, textInput, colour, position):
+        text = font.render(textInput, True, colour)
+        textRect = text.get_rect(center=position)
+        screen.blit(text, textRect)
 
     def playerUI(self, player, screen):
         # Creates the player UI
@@ -17,15 +22,11 @@ class UIManager():
         font = pygame.font.SysFont("cambria", 30)
         healthTextInput = "Health: "
         healthTextInput += str(player.health)
-        healthText = font.render(healthTextInput, True, "white")
-        healthTextRect = healthText.get_rect(center=(150, 550))
-        screen.blit(healthText, healthTextRect)
+        self.BlitText(screen, font, healthTextInput, "white", (150, 550))
         # Points text
         pointsTextInput = "Points: "
         pointsTextInput += str(player.points)
-        pointsText = font.render(pointsTextInput, True, "white")
-        pointsTextRect = pointsText.get_rect(center=(350, 550))
-        screen.blit(pointsText, pointsTextRect)
+        self.BlitText(screen, font, pointsTextInput, "white", (350, 550))
         # Current item box
         frameBehindItemSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
         frameBehindItemSurface = pygame.transform.scale(frameBehindItemSurface, (frameBehindItemSurface.get_rect().w*2, frameBehindItemSurface.get_rect().h*2))
@@ -37,7 +38,34 @@ class UIManager():
         itemBoxRect = itemSprite.get_rect()
         itemBoxRect.center = (850, 550)
         screen.blit(itemSprite, itemBoxRect)
-        
+    
+    def survivorInfo(self, screen, survivor):
+        size = 30
+        xCoord = 850
+        colour = "black"
+        font = pygame.font.SysFont("cambria", size)
+        nameText = "Name: "
+        nameText += str(survivor.name)
+        strengthText = "Strength: "
+        strengthText += str(survivor.strength)
+        speedText = "Speed: "
+        speedText += str(survivor.speed)
+        attackSpeedText = "Attack speed: "
+        attackSpeedText += str(survivor.attackSpeed)
+        awarenessText = "Awareness: "
+        awarenessText += str(survivor.awareness)
+        top = 320
+        textBackSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
+        textBackSurface = pygame.transform.scale(textBackSurface, (textBackSurface.get_rect().w*10, size*6))
+        rect = textBackSurface.get_rect()
+        rect.center = (xCoord, 0)
+        rect.top = top - size
+        screen.blit(textBackSurface, rect)
+        self.BlitText(screen, font, nameText, colour, (xCoord, top))
+        self.BlitText(screen, font, strengthText, colour, (xCoord, top+size))
+        self.BlitText(screen, font, speedText, colour, (xCoord, top+(size*2)))
+        self.BlitText(screen, font, attackSpeedText, colour, (xCoord, top+(size*3)))
+        self.BlitText(screen, font, awarenessText, colour, (xCoord, top+(size*4)))
 
     def DayUI(self, storeItems):
         # Creates UI for daytime
@@ -75,6 +103,8 @@ class UIManager():
         if waveManager.isDay:
             self.CreateStore(screen)
         self.playerUI(player, screen)
+        if player.selectedSurvivor != None:
+            self.survivorInfo(screen, player.selectedSurvivor)
     
     def CreateStore(self, screen):
         # Draws sprites from sprite list onto screen for store
@@ -104,9 +134,7 @@ class UIManager():
                 font = pygame.font.SysFont("cambria", 30)
                 itemCostText = "Price: "
                 itemCostText += str(price)
-                itemText = font.render(itemCostText, True, "white")
-                itemTextRect = itemText.get_rect(center=(currentX, yLevel+spriteWidth+10))
-                screen.blit(itemText, itemTextRect)
+                self.BlitText(screen, font, itemCostText, "white", (currentX, yLevel+spriteWidth+10))
                 # Creates buttons which run code to buy items
                 #print("store buttons added?:", self.storeButtonsAdded)
                 if not self.storeButtonsAdded:

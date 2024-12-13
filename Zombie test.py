@@ -154,6 +154,8 @@ class Player(MoveObject):
 
         self.canUse = False # Stores if the player can use an item
         self.health = 100 # Stores the health of the player
+        self.strength = 1
+        self.attackSpeed = 1
         self.points = 0 # Stores the number of points the player has
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -353,12 +355,18 @@ class Survivor(MoveObject):
         self.oldRect = self.hitboxRect.copy()
         self.lookDirection = 0
         self.currentItem = copy.copy(Fists)
-        self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, 800, 800)
         self.target = None # The actual target of the survivor
         self.pathTarget = None # The target the survivor will move towards which may not be the actual target
         self.hasTarget = False
         self.canUse = False # Determines if the survivor can use its item
         self.health = 100
+        self.strength = round(random.uniform(0.5, 1.5), 2) # Multiplier affecting damage of melee weapons
+        self.speed = random.randint(150, 450) # Randomly selects a speed
+        self.attackSpeed = round(random.uniform(0.5, 1.5), 2) # Multiplier affecting rate of damage of melee weapons
+        self.awareness = random.randint(500, 1500)
+        self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.awareness, self.awareness)
+        survivorNames = ["Bart", "Maria", "Juan", "Takeshi", "Yusef", "Thomas", "Chris", "Sam", "Pedro", "Gabriel", "Ben", "Emily"]
+        self.name = random.choice(survivorNames)
         self.redTintDuration = 0.1
         self.timeSinceTint = 0
         self.override = False # Overrides the pathfinding
@@ -975,7 +983,7 @@ bottomY = enemySpawnTop.rect.bottom-borderOffsetY
 for _ in range(0):
     randomCoords = ((random.randint(leftX, rightX), random.randint(topY, bottomY)))
     print("coords:", randomCoords)
-    allSprites.add(TestWall(randomCoords))
+    allSprites.add(TempObject(randomCoords))
 
 #################### MAIN GAME LOOP ####################
 
@@ -994,7 +1002,7 @@ def main():
         if timeSincePath >= 0.5:
             #print("time:", timeSincePath)
             pathFindPlayer.CreateMap()
-            cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='tottime')
+            #cProfile.runctx('pathFindPlayer.CreateMap()', globals(), locals(), sort='tottime')
             lastTimeSincePath = time.time()
         screen.fill(black)
         for event in pygame.event.get():
