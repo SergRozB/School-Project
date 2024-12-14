@@ -38,6 +38,10 @@ class UIManager():
         itemBoxRect = itemSprite.get_rect()
         itemBoxRect.center = (850, 550)
         screen.blit(itemSprite, itemBoxRect)
+        inventorySlotFont = pygame.font.SysFont("cambria", 15)
+        itemNumberText = "Inventory slot: "
+        itemNumberText += str(player.currentItem)
+        self.BlitText(screen, inventorySlotFont, itemNumberText, "white", (850, 500))
     
     def survivorInfo(self, screen, survivor):
         size = 30
@@ -109,9 +113,10 @@ class UIManager():
     def CreateStore(self, screen):
         # Draws sprites from sprite list onto screen for store
         screenW = screen.get_width()
+        sizeMultiplier = 2 # The multiplier applied to the sprite
         minSeparation = 5 # The minimum separation between sprites when displaying
-        spriteWidth = 32
-        maxSpritesOnScreen = screenW-5 // (spriteWidth + minSeparation) # Calculates the maximum number of spirtes on the screen
+        spriteWidth = 32 * sizeMultiplier
+        maxSpritesOnScreen = (screenW) // (spriteWidth + minSeparation) # Calculates the maximum number of spirtes on the screen
         spriteCount = 0 # Number of sprites to draw on screen
         if maxSpritesOnScreen < len(self.storeSpriteList):
             spriteCount = maxSpritesOnScreen
@@ -125,18 +130,25 @@ class UIManager():
         for item, sprite, price in self.storeSpriteList:
             if spriteOnScreenCount < maxSpritesOnScreen:
                 # Draws sprites onto screen
-                sprite = pygame.transform.scale(sprite, (sprite.get_rect().w * 2, sprite.get_rect().h * 2))
+                sprite = pygame.transform.scale(sprite, (sprite.get_rect().w * sizeMultiplier, sprite.get_rect().h * sizeMultiplier))
                 spriteBoxRect = sprite.get_rect()
                 spriteBoxRect.center = (currentX, yLevel)
                 screen.blit(sprite, spriteBoxRect)
                 spriteOnScreenCount += 1
                 # Draws text with cost of item onto screen
-                font = pygame.font.SysFont("cambria", 30)
+                font = pygame.font.SysFont("cambria", 20)
                 itemCostText = "Price: "
                 itemCostText += str(price)
-                self.BlitText(screen, font, itemCostText, "white", (currentX, yLevel+spriteWidth+10))
+                self.BlitText(screen, font, itemCostText, "black", (currentX, yLevel+spriteWidth/2))
+                nameYlevel = (yLevel-(spriteWidth)/2)-10
+                textBackSurface = pygame.image.load("SpriteImages\WornButton.png")
+                textBackSurface = pygame.transform.scale(textBackSurface, (textBackSurface.get_rect().w*2, textBackSurface.get_rect().h*1.4))
+                rect = textBackSurface.get_rect()
+                rect.center = (currentX, nameYlevel)
+                screen.blit(textBackSurface, rect)
+                nameText = item.name
+                self.BlitText(screen, font, nameText, "red", (currentX, nameYlevel))
                 # Creates buttons which run code to buy items
-                #print("store buttons added?:", self.storeButtonsAdded)
                 if not self.storeButtonsAdded:
                     print("store buttons?")
                     print("currnet x:", currentX)

@@ -9,6 +9,7 @@ import UIManager
 import cProfile
 import Pathfinding
 import copy
+import Boosters
 
 pygame.init()
 zoomLevel = Camera.zoomLevel
@@ -156,19 +157,63 @@ class Player(MoveObject):
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 0 # Stores the number of points the player has
+        self.points = 100 # Stores the number of points the player has
+        self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
         self.timeSinceTint = 0 # The time since the last red tint
         self.selectedSurvivor = None # Stores the selected Survivor
         self.givingCommand = False # Stores if the player is giving a command to check for inputs
+        
+        # Below are various variables dealing with status effects
+        self.timeSinceSpeedBoost = 0
+        self.timeSinceStrengthBoost = 0
+        self.timeSinceAttackSpeedBoost = 0
+        self.hasSpeedBoost = False
+        self.hasStrengthBoost = False
+        self.hasAttackSpeedBoost = False
+        self.statusList = []
+    
+    def ManageStatusEffects(self):
+        fontSize = 20
+        font = pygame.font.SysFont("cambria", fontSize)
+        if self.hasSpeedBoost:
+            if (time.time() - self.timeSinceSpeedBoost) >= SpeedBooster.statusDuration:
+                self.speed = self.baseSpeed
+                self.hasSpeedBoost = False
+                self.statusList.pop(self.statusList.index("speed"))
+            else:
+                speedText = "Speed Serum Time Left: "
+                speedText += str(int(30 - (time.time() - self.timeSinceSpeedBoost)))
+                uiManager.BlitText(screen, font, speedText, "white", (screenW-150,(self.statusList.index("speed")+1)*fontSize))
+
+        if self.hasStrengthBoost:
+            if (time.time() - self.timeSinceStrengthBoost) >= StrengthBooster.statusDuration:
+                self.strength = 1
+                self.hasStrengthBoost = False
+                self.statusList.pop(self.statusList.index("strength"))
+            else:
+                speedText = "Strength Pill Time Left: "
+                speedText += str(int(30 - (time.time() - self.timeSinceStrengthBoost)))
+                uiManager.BlitText(screen, font, speedText, "white", (screenW-150,(self.statusList.index("strength")+1)*fontSize))
+
+        if self.hasAttackSpeedBoost:
+            if (time.time() - self.timeSinceAttackSpeedBoost) >= AttackSpeedBooster.statusDuration:
+                self.attackSpeed = 1
+                self.hasAttackSpeedBoost = False 
+                self.statusList.pop(self.statusList.index("attackSpeed"))
+            else:
+                speedText = "Rage Tablet Time Left: "
+                speedText += str(int(30 - (time.time() - self.timeSinceAttackSpeedBoost)))
+                uiManager.BlitText(screen, font, speedText, "white", (screenW-150,(self.statusList.index("attackSpeed")+1)*fontSize))
 
     def UseItem(self):
         currentItem = self.GetCurrentItem()
-        if leftMButtonHeld and currentItem.isWeapon:
-            currentItem.Use(self)
-        elif leftMButtonPressed and not currentItem.isWeapon:
-            currentItem.Use(self)
+        if not waveManager.isDay:
+            if leftMButtonHeld and currentItem.isWeapon:
+                currentItem.Use(self)
+            elif leftMButtonPressed and not currentItem.isWeapon:
+                currentItem.Use(self)
     
     def GetCurrentItem(self):
         return self.inventory[self.currentItem]
@@ -186,7 +231,7 @@ class Player(MoveObject):
                 self.currentItem -= 1
     
     def BuyItem(self, item):
-        if item in self.inventory:
+        if item.isWeapon and item in self.inventory:
             print("Already in Inventory!")
         elif self.points >= item.price:
             self.inventory.append(item)
@@ -285,13 +330,15 @@ class Player(MoveObject):
             # Checks if the g key is pressed, and if so carries out the give current item command
             if keys[pygame.K_g]:
                 currentItem = self.GetCurrentItem()
-                if not currentItem.isDefault:
+                if not currentItem.isDefault and currentItem.isWeapon:
                     print("gave", type(currentItem).__name__,"!")
                     self.selectedSurvivor.currentItem = copy.copy(currentItem)
                     self.inventory.remove(currentItem)
-                    self.currentItem -= 1
-                else:
-                    print("You cant give fists!")
+                    self.currentItem = 0
+                elif currentItem.isDefault:
+                    print("No item selected")
+                elif not currentItem.isWeapon:
+                    print("Can only give weapons to survivors")
                 self.selectedSurvivor = None
 
             # Checks if the q key is pressed, and if so carries out the go to point command
@@ -336,6 +383,7 @@ class Player(MoveObject):
         self.RotateToMouse()
         self.UseItem()
         self.CheckSelection()
+        self.ManageStatusEffects()
         if self.selectedSurvivor != None:
             self.SurvivorCommands()
         if (time.time() - self.timeSinceTint) < self.redTintDuration:
@@ -602,7 +650,7 @@ class Enemy(MoveObject):
             self.died = True
             self.kill()
             player.localRects.pop(self)
-            for surivor in survivorSprites:
+            for survivor in survivorSprites:
                 survivor.localRects.pop(self)
             enemyRects.remove((self.hitboxRect, self))
 
@@ -637,46 +685,6 @@ class Enemy(MoveObject):
             self.pos.y += newVector.y
             #self.direction.x += x*factor
             #self.direction.y += y*factor
-
-class RangedWeapon():
-    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed, imagePath, price, isDefault):
-        self.damage = damage
-        self.fireRate = fireRate
-        self.spread = spread
-        self.magazineCap = magazineCap
-        self.totalAmmo = totalAmmo
-        self.reloadSpeed = reloadSpeed
-        self.currentAmmo = magazineCap
-        self.lastFired = 0
-        self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
-        self.price = price
-        self.isWeapon = True
-        self.isDefault = isDefault
-    
-    def Use(self, user):
-        timeSince = time.time() - self.lastFired
-        print("current ammo:", self.currentAmmo)
-        if timeSince >= self.fireRate and self.currentAmmo > 0:
-            print("FIRED!")
-            self.lastFired = time.time()
-            self.Shoot(user)
-            self.currentAmmo -= 1
-
-        elif self.currentAmmo == 0 and self.totalAmmo > 0:
-            if self.totalAmmo >= self.magazineCap:
-                self.currentAmmo = self.magazineCap
-                self.totalAmmo -= self.magazineCap
-
-            elif self.totalAmmo < self.magazineCap:
-                self.currentAmmo = self.totalAmmo
-                self.totalAmmo = 0
-    
-    def Shoot(self, user):
-        Bullet(user.pos, 1000, self.damage, user.lookDirection)
-    
-    def ReturnRange(self):
-        # Returns the range of the weapon from the user
-        return 100000
 
 class Bullet(MoveObject):
     def __init__(self, startingPos, speed, damage, direction):
@@ -774,7 +782,8 @@ class WaveManager():
 
     def Daytime(self, uiManager):
         uiManager.DayUI(storeItems)
-        player.health = 100
+        if player.health < 100:
+            player.health = 100
 
     def Update(self, enemySprites, uiManager):
         self.zombieCount = len(enemySprites)
@@ -812,7 +821,7 @@ class WaveManager():
             survivor.CreateLocalRects(allSprites)
 
 class MeleeWeapon():
-    def __init__(self, attackRange, attackSpeed, damage, imagePath, price, isDefault):
+    def __init__(self, attackRange, attackSpeed, damage, imagePath, price, isDefault, name):
         self.attackRange = attackRange
         self.attackSpeed = attackSpeed
         self.damage = damage
@@ -823,11 +832,12 @@ class MeleeWeapon():
         self.price = price
         self.isWeapon = True
         self.isDefault = isDefault
+        self.name = name
     
     def Use(self, user):
         # Function called when the weapon is used
         timeSince = time.time() - self.lastUsed
-        if timeSince >= self.attackSpeed:
+        if timeSince >= self.attackSpeed * user.attackSpeed:
             #print("USED!")
             self.lastUsed = time.time()
             self.Attack(user)
@@ -860,11 +870,52 @@ class MeleeWeapon():
                 print("INDEX:", index, "| len:", len(listOfRects))
                 print("enemy rects:", enemyRects)
                 zombie = enemyRects[index][1]
-                zombie.TakeDamage(self.damage)
+                zombie.TakeDamage(self.damage * user.strength)
     
     def ReturnRange(self):
         # Returns the range of the weapon from the user
         return self.baseRangeImage.get_rect().h * self.attackRange
+
+class RangedWeapon():
+    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed, imagePath, price, name):
+        self.damage = damage
+        self.fireRate = fireRate
+        self.spread = spread
+        self.magazineCap = magazineCap
+        self.totalAmmo = totalAmmo
+        self.reloadSpeed = reloadSpeed
+        self.currentAmmo = magazineCap
+        self.lastFired = 0
+        self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
+        self.price = price
+        self.isWeapon = True
+        self.isDefault = False
+        self.name = name
+    
+    def Use(self, user):
+        timeSince = time.time() - self.lastFired
+        print("current ammo:", self.currentAmmo)
+        if timeSince >= self.fireRate and self.currentAmmo > 0:
+            print("FIRED!")
+            self.lastFired = time.time()
+            self.Shoot(user)
+            self.currentAmmo -= 1
+
+        elif self.currentAmmo == 0 and self.totalAmmo > 0:
+            if self.totalAmmo >= self.magazineCap:
+                self.currentAmmo = self.magazineCap
+                self.totalAmmo -= self.magazineCap
+
+            elif self.totalAmmo < self.magazineCap:
+                self.currentAmmo = self.totalAmmo
+                self.totalAmmo = 0
+    
+    def Shoot(self, user):
+        Bullet(user.pos, 1000, self.damage, user.lookDirection)
+    
+    def ReturnRange(self):
+        # Returns the range of the weapon from the user
+        return 100000
 
 def DrawMinimap():
     size = 0.1
@@ -913,9 +964,13 @@ survivorSprites = pygame.sprite.Group()
 
 #################### CREATE OBJECTS ####################
 
-AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, False)
-Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False)
-Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0, True)
+AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "M4 Rifle")
+Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
+Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
+HealthBooster = Boosters.HealthBooster()
+SpeedBooster = Boosters.SpeedBooster()
+StrengthBooster = Boosters.StrengthBooster()
+AttackSpeedBooster = Boosters.AttackSpeedBooster()
 player = Player((850, 850))
 survivor = Survivor((850, 850))
 enemySpawnTop = enemySpawnArea((32, 32), (61*32, 4*32))
@@ -962,7 +1017,7 @@ waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemy
 
 lastTimeSincePath = 0
 
-storeItems = [Axe, AutoRifle]
+storeItems = [HealthBooster, SpeedBooster, StrengthBooster, AttackSpeedBooster, Axe, AutoRifle]
 
 #################### SPAWN ZOMBIES ####################
 
@@ -1026,7 +1081,6 @@ def main():
                 elif event.y == -1:
                     player.ScrollInventory("down")
         
-
         for sprite in liveSprites:
             sprite.Update()
             #print("name:", type(sprite).__name__)
