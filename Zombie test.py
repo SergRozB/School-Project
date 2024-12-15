@@ -35,8 +35,8 @@ top = 0
 
 mapW = 32*widthOfMap
 mapH = 32*len(MapMaker.map)
-screenW = 1000
-screenH = 600
+screenW = 1500
+screenH = 900
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -157,7 +157,7 @@ class Player(MoveObject):
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 100 # Stores the number of points the player has
+        self.points = 0 # Stores the number of points the player has
         self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -232,14 +232,13 @@ class Player(MoveObject):
     
     def BuyItem(self, item):
         if item.isWeapon and item in self.inventory:
-            print("Already in Inventory!")
+            uiManager.AddNotification("Item already in inventory")
         elif self.points >= item.price:
             self.inventory.append(item)
             self.points -= item.price
-            print("Bought item!")
-            print("Inventory:", self.inventory)
+            uiManager.AddNotification("Bought " + item.name)
         else:
-            print("But I don't have any moneeeey")
+            uiManager.AddNotification("Not enough points")
 
     def CheckControls(self):
         keys = pygame.key.get_pressed()
@@ -331,26 +330,27 @@ class Player(MoveObject):
             if keys[pygame.K_g]:
                 currentItem = self.GetCurrentItem()
                 if not currentItem.isDefault and currentItem.isWeapon:
-                    print("gave", type(currentItem).__name__,"!")
+                    uiManager.AddNotification("Gave " + currentItem.name)
                     self.selectedSurvivor.currentItem = copy.copy(currentItem)
                     self.inventory.remove(currentItem)
                     self.currentItem = 0
                 elif currentItem.isDefault:
-                    print("No item selected")
+                    uiManager.AddNotification("No item selected")
                 elif not currentItem.isWeapon:
-                    print("Can only give weapons to survivors")
+                    uiManager.AddNotification("Survivors can only recieve weapons")
                 self.selectedSurvivor = None
 
             # Checks if the q key is pressed, and if so carries out the go to point command
             if keys[pygame.K_q]:
-                print("Giving command")
+                uiManager.AddNotification("Select where to move survivor")
                 self.givingCommand = True
     
     def GiveCommand(self):
+        mPos = pygame.mouse.get_pos()
         if rightMButtonPressed:
             mPos = pygame.mouse.get_pos()
-            mx = (mPos[0] + camera.offset.x) * zoomLevel
-            my = (mPos[1] + camera.offset.y) * zoomLevel
+            mx = (mPos[0]/zoomLevel) + camera.offset.x
+            my = (mPos[1]/zoomLevel) + camera.offset.y
             tempObject = TempObject((mx, my))
             canMoveToPos = False
             listOfSprites = pygame.sprite.spritecollide(tempObject, allSprites, False)
@@ -369,7 +369,7 @@ class Player(MoveObject):
                 self.selectedSurvivor = None
                 self.givingCommand = False
             else:
-                print("Can't access location!")
+                uiManager.AddNotification("Can't access selected location")
                 self.selectedSurvivor = None
                 self.givingCommand = False
 
@@ -394,7 +394,7 @@ class Survivor(MoveObject):
         super().__init__(startingPosition, 300)
         
         # Create the image of the survivor
-        self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
+        self.image = pygame.transform.rotozoom(pygame.image.load(self.RandomSurvivorSprite()).convert_alpha(), 0, 1)
         self.baseImage = self.image
 
         # Get a rectangle object that shows where our image is
@@ -407,11 +407,15 @@ class Survivor(MoveObject):
         self.pathTarget = None # The target the survivor will move towards which may not be the actual target
         self.hasTarget = False
         self.canUse = False # Determines if the survivor can use its item
-        self.health = 100
-        self.strength = round(random.uniform(0.5, 1.5), 2) # Multiplier affecting damage of melee weapons
-        self.speed = random.randint(150, 450) # Randomly selects a speed
-        self.attackSpeed = round(random.uniform(0.5, 1.5), 2) # Multiplier affecting rate of damage of melee weapons
-        self.awareness = random.randint(500, 1500)
+        self.health = 10
+        self.strengthRange = (0.5, 1.5)
+        self.awarenessRange = (500, 1500)
+        self.attackSpeedRange = (0.5, 1.5)
+        self.speedRange = (150, 450)
+        self.strength = round(random.uniform(self.strengthRange[0], self.strengthRange[1]), 2) # Multiplier affecting damage of melee weapons
+        self.speed = random.randint(self.speedRange[0], self.speedRange[1]) # Randomly selects a speed
+        self.attackSpeed = round(random.uniform(self.attackSpeedRange[0], self.attackSpeedRange[1]), 2) # Multiplier affecting rate of damage of melee weapons
+        self.awareness = random.randint(self.awarenessRange[0], self.awarenessRange[1])
         self.rangeRect = pygame.Rect(self.hitboxRect.left, self.hitboxRect.top, self.awareness, self.awareness)
         survivorNames = ["Bart", "Maria", "Juan", "Takeshi", "Yusef", "Thomas", "Chris", "Sam", "Pedro", "Gabriel", "Ben", "Emily"]
         self.name = random.choice(survivorNames)
@@ -421,6 +425,10 @@ class Survivor(MoveObject):
         self.timeSincePathfind = 0 # Records the time since the last path find operation
         self.pathfindRate = 0.2 # Controls how often the survivor can pathfind in seconds
         self.followingCommand = False # Stores if the survivor is following a command, to stop doing other things
+    
+    def RandomSurvivorSprite(self):
+        randInt = random.randint(1, 8)
+        return "SpriteImages\Survivor_" + str(randInt) + ".png"
     
     def InitialisePathfinding(self):
         # Creates pathfinding object in survivor when called
@@ -441,7 +449,7 @@ class Survivor(MoveObject):
         elif self.followingCommand:
             keepDistance = 32
         else:
-            keepDistance = self.currentItem.ReturnRange()*0.6
+            keepDistance = self.currentItem.ReturnRange()*0.5
         x, y = self.hitboxRect.center
         Tx, Ty = self.target.hitboxRect.center
         xDist = Tx - x
@@ -945,6 +953,7 @@ def DrawMinimap():
             drawnRect = image.get_rect(center = sprite.hitboxRect.center)
         screen.blit(pygame.transform.scale(image, (drawnRect.w * size, drawnRect.h * size)), 
                     (drawnRect.x * size, drawnRect.y * size))
+        
 #################### CREATE GROUPS/LISTS ####################
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
@@ -1012,7 +1021,7 @@ survivor.InitialisePathfinding()
 survivor.pathFind.CreateLocalPathMap()
 
 camera = Camera.Camera(player, (screenW, screenH))
-uiManager = UIManager.UIManager()
+uiManager = UIManager.UIManager(screenW, screenH)
 waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight)
 
 lastTimeSincePath = 0
