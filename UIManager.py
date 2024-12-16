@@ -15,6 +15,7 @@ class UIManager():
         self.notificationID = 0 # notification ID is simply a counter
         self.screenW = screenW
         self.screenH = screenH
+        self.load = False
     
     def BlitText(self, screen, font, textInput, colour, position):
         text = font.render(textInput, True, colour)
@@ -167,13 +168,23 @@ class UIManager():
             waveManager.NextWave(self)
         if name == "Buy":
             player.BuyItem(self.itemToBuy)
+        
+    def MenuFunctions(self, name):
+        if name == "Quit":
+            pygame.quit()
+        if name == "Resume":
+            self.load = True
     
     def GameOverScreen(self):
         self.buttonList.clear()
         resumeSurface = pygame.image.load("SpriteImages\WornButton.png")
         resumeSurface = pygame.transform.scale(resumeSurface, (200, 75))
-        resumeButton = Button.Button(resumeSurface, self.screenW*0.5, self.screenH*0.5, "Resume", 30, "Resume", True)
+        resumeButton = Button.Button(resumeSurface, self.screenW*0.6, self.screenH*0.6, "Resume", 30, "Resume", True)
         self.buttonList.append(resumeButton)
+        quitSurface = pygame.image.load("SpriteImages\WornButton.png")
+        quitSurface = pygame.transform.scale(quitSurface, (200, 75))
+        quitButton = Button.Button(quitSurface, self.screenW*0.4, self.screenH*0.4, "Quit", 30, "Quit", True)
+        self.buttonList.append(quitButton)
     
     def MenuUpdate(self, screen):
         for button in self.buttonList:
@@ -182,7 +193,7 @@ class UIManager():
             if button.CheckForInput(mPos) and self.mouseButtonPressed:
                 if button.isStoreButton:
                     self.itemToBuy = button.item
-                self.ButtonFunctions(button.name, waveManager, player)
+                self.MenuFunctions(button.name)
                 if button.doKill:
                     self.buttonList.remove(button)
             button.Update(screen)

@@ -953,6 +953,21 @@ def DrawMinimap():
             drawnRect = image.get_rect(center = sprite.hitboxRect.center)
         screen.blit(pygame.transform.scale(image, (drawnRect.w * size, drawnRect.h * size)), 
                     (drawnRect.x * size, drawnRect.y * size))
+
+def Load():
+    allSprites.remove(enemySprites)
+    allSprites.remove(player)
+    allSprites.remove(survivorSprites)
+    enemyRects.clear()
+    liveSprites.remove(enemySprites)
+    liveSprites.remove(player)
+    liveSprites.remove(survivorSprites)
+    player = Player((850, 850))
+    survivor = Survivor((850, 850))
+    player.CreateLocalRects(allSprites)
+    survivor.CreateLocalRects(allSprites)
+    zombieAttackSprites.add(player)
+
         
 #################### CREATE GROUPS/LISTS ####################
 
@@ -1149,6 +1164,10 @@ def dead():
         lastTime = time.time()
         screen.fill(black)
         uiManager.MenuUpdate(screen)
+        if uiManager.load == True:
+            uiManager.load = False
+            Load()
+            main()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
