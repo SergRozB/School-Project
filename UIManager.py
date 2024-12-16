@@ -168,6 +168,25 @@ class UIManager():
         if name == "Buy":
             player.BuyItem(self.itemToBuy)
     
+    def GameOverScreen(self):
+        self.buttonList.clear()
+        resumeSurface = pygame.image.load("SpriteImages\WornButton.png")
+        resumeSurface = pygame.transform.scale(resumeSurface, (200, 75))
+        resumeButton = Button.Button(resumeSurface, self.screenW*0.5, self.screenH*0.5, "Resume", 30, "Resume", True)
+        self.buttonList.append(resumeButton)
+    
+    def MenuUpdate(self, screen):
+        for button in self.buttonList:
+            mPos = pygame.mouse.get_pos()
+            button.ChangeColour(mPos)
+            if button.CheckForInput(mPos) and self.mouseButtonPressed:
+                if button.isStoreButton:
+                    self.itemToBuy = button.item
+                self.ButtonFunctions(button.name, waveManager, player)
+                if button.doKill:
+                    self.buttonList.remove(button)
+            button.Update(screen)
+    
     def Update(self, screen, waveManager, player):
         # Updates list of buttons, checking for inputs
         for button in self.buttonList:

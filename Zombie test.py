@@ -1142,12 +1142,13 @@ def dead():
     pygame.display.set_caption("Ded")
     global dt
     global lastTime
+    uiManager.GameOverScreen()
     while True:
         screen.fill("black")
         dt = time.time() - lastTime
         lastTime = time.time()
-
         screen.fill(black)
+        uiManager.MenuUpdate(screen)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
