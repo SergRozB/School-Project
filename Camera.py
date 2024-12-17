@@ -14,3 +14,6 @@ class Camera():
         self.offsetFloat.x += (self.player.hitboxRect.x - self.offsetFloat.x + self.const.x) 
         self.offsetFloat.y += (self.player.hitboxRect.y - self.offsetFloat.y + self.const.y) 
         self.offset.x, self.offset.y = int(self.offsetFloat.x), int(self.offsetFloat.y)
+    
+    def ResetFocus(self, player):
+        self.player = player

@@ -773,6 +773,7 @@ class WaveManager():
         self.isDay = False   
         self.waveCount = 0 
         self.maxWave = 3
+        self.survivorSpawnWaves = [0,2,4] # list of waves after which a survivor is spawned
 
     def NextWave(self, uiManager):
         print("next wave")
@@ -780,7 +781,7 @@ class WaveManager():
         uiManager.RemoveDayUI()
         self.waveCount += 1
         if self.waveCount == 1:
-            self.spawnNumber = 1
+            self.spawnNumber = 15
         elif self.waveCount == 2:
             self.spawnNumber = 2
         elif self.waveCount == 3:
@@ -789,9 +790,21 @@ class WaveManager():
             self.SpawnZombies(spawnArea)
 
     def Daytime(self, uiManager):
+        if self.waveCount in self.survivorSpawnWaves:
+            self.SpawnSurvivor()
         uiManager.DayUI(storeItems)
         if player.health < 100:
             player.health = 100
+    
+    def SpawnSurvivor(self):
+        survivor = Survivor((850, 850))
+        survivorSprites.add(survivor)
+        allSprites.add(survivor)
+        liveSprites.add(survivor)
+        survivor.InitialisePathfinding()
+        survivor.pathFind.CreateLocalPathMap()
+        survivor.CreateLocalRects(allSprites)
+        uiManager.AddNotification("A survivor named " + survivor.name + " has arrived")
 
     def Update(self, enemySprites, uiManager):
         self.zombieCount = len(enemySprites)
@@ -827,6 +840,10 @@ class WaveManager():
         for survivor in survivorSprites:
             print("survivrorovrv")
             survivor.CreateLocalRects(allSprites)
+    
+    def Reset(self):
+        self.waveCount = 0
+        self.isDay = True
 
 class MeleeWeapon():
     def __init__(self, attackRange, attackSpeed, damage, imagePath, price, isDefault, name):
@@ -955,20 +972,37 @@ def DrawMinimap():
                     (drawnRect.x * size, drawnRect.y * size))
 
 def Load():
+    global player
+    global enemySprites
+    global survivorSprites
+    global enemyRects
+    global allSprites
+    global waveManager
+    global camera
     allSprites.remove(enemySprites)
     allSprites.remove(player)
     allSprites.remove(survivorSprites)
     enemyRects.clear()
-    liveSprites.remove(enemySprites)
-    liveSprites.remove(player)
-    liveSprites.remove(survivorSprites)
+    liveSprites.empty()
+    survivorSprites.empty()
     player = Player((850, 850))
-    survivor = Survivor((850, 850))
     player.CreateLocalRects(allSprites)
-    survivor.CreateLocalRects(allSprites)
     zombieAttackSprites.add(player)
-
+    allSprites.add(player)
+    liveSprites.add(player)
+    waveManager.Reset()
+    waveManager.Daytime(uiManager)
+    camera.ResetFocus(player)
         
+def IsOnScreen(position):
+    screenPosX = (position[0] - camera.offset.x) * zoomLevel
+    screenPosY = (position[1] - camera.offset.y) * zoomLevel
+    screenWLimit = screenW - camera.offset.x
+    screenHLimit = screenH - camera.offset.y
+    if (screenPosX <= screenWLimit and screenPosX >= 0) and (screenPosY <= screenHLimit and screenPosY >= 0):
+        return True
+    else:
+        return False
 #################### CREATE GROUPS/LISTS ####################
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'
@@ -996,7 +1030,6 @@ SpeedBooster = Boosters.SpeedBooster()
 StrengthBooster = Boosters.StrengthBooster()
 AttackSpeedBooster = Boosters.AttackSpeedBooster()
 player = Player((850, 850))
-survivor = Survivor((850, 850))
 enemySpawnTop = enemySpawnArea((32, 32), (61*32, 4*32))
 enemySpawnLeft = enemySpawnArea((32*-4, 32*10), (4*32, 37*32))
 enemySpawnRight = enemySpawnArea((32*63, 32*10), (4*32, 37*32))
@@ -1005,14 +1038,11 @@ enemySpawnBottom = enemySpawnArea((32, 32*52), (61*32, 4*32))
 #################### SETUP ####################
 
 allSprites.add(player)
-allSprites.add(survivor)
 noCollisionSprites.add(enemySpawnTop)
 noCollisionSprites.add(enemySpawnLeft)
 noCollisionSprites.add(enemySpawnRight)
 noCollisionSprites.add(enemySpawnBottom)
 liveSprites.add(player)
-liveSprites.add(survivor)
-survivorSprites.add(survivor)
 
 MapMaker.CreateMap(MapMaker.map)
 for wall in MapMaker.wallList:
@@ -1020,7 +1050,6 @@ for wall in MapMaker.wallList:
     obstacles.add(wall)
 
 player.CreateLocalRects(allSprites)
-survivor.CreateLocalRects(allSprites)
 zombieAttackSprites.add(player)
 
 background = pygame.Surface(screen.get_size())
@@ -1032,8 +1061,6 @@ VectorFieldPathfinding.CreateObstacleMap((horizontalCount, verticalCount), block
 pathFindPlayer = VectorFieldPathfinding.VectorFieldPathfinding((horizontalCount, verticalCount), player.hitboxRect, pathSprites)
 pathFindPlayer.CreateLocalPathMap()
 #Pathfinding.CreateObstacleMap((horizontalCount, verticalCount), blockWidth, obstacles, pathSprites, top, firstOccurrence)
-survivor.InitialisePathfinding()
-survivor.pathFind.CreateLocalPathMap()
 
 camera = Camera.Camera(player, (screenW, screenH))
 uiManager = UIManager.UIManager(screenW, screenH)
@@ -1115,12 +1142,13 @@ def main():
         rightMButtonPressed = False
         camera.scroll()
         for sprite in allSprites:
-            drawnRect = sprite.rect.copy()
-            drawnRect.width = sprite.rect.width * zoomLevel
-            drawnRect.height = sprite.rect.height * zoomLevel
-            screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
-                        ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
-            #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
+            if IsOnScreen(sprite.hitboxRect.center):
+                drawnRect = sprite.rect.copy()
+                drawnRect.width = sprite.rect.width * zoomLevel
+                drawnRect.height = sprite.rect.height * zoomLevel
+                screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
+                            ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+                #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
         #pygame.draw.rect(screen, "green", Axe.rangeRect)
 
         #for sprite in showPathSprites:
@@ -1154,6 +1182,7 @@ def main():
         clock.tick(60)
 #################### DEATH GAME LOOP ####################
 def dead():
+    global leftMButtonHeld
     pygame.display.set_caption("Ded")
     global dt
     global lastTime
@@ -1163,14 +1192,21 @@ def dead():
         dt = time.time() - lastTime
         lastTime = time.time()
         screen.fill(black)
-        uiManager.MenuUpdate(screen)
-        if uiManager.load == True:
-            uiManager.load = False
-            Load()
-            main()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                leftMButtonHeld = True
+
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                leftMButtonHeld = False
+        uiManager.mouseButtonPressed = leftMButtonHeld
+        uiManager.MenuUpdate(screen)
+        if uiManager.load == True:
+            uiManager.load = False
+            print("helllooooooo")
+            Load()
+            main()
         pygame.display.update()
 main()
 #cProfile.runctx('Enemy.Update()', globals(), locals())
