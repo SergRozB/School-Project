@@ -449,7 +449,7 @@ class Survivor(MoveObject):
         elif self.followingCommand:
             keepDistance = 32
         else:
-            keepDistance = self.currentItem.ReturnRange()*0.5
+            keepDistance = self.currentItem.ReturnRange()*0.8
         x, y = self.hitboxRect.center
         Tx, Ty = self.target.hitboxRect.center
         xDist = Tx - x
@@ -993,16 +993,18 @@ def Load():
     waveManager.Reset()
     waveManager.Daytime(uiManager)
     camera.ResetFocus(player)
+    pathFindPlayer.ResetTarget(player.hitboxRect)
         
 def IsOnScreen(position):
-    screenPosX = (position[0] - camera.offset.x) * zoomLevel
-    screenPosY = (position[1] - camera.offset.y) * zoomLevel
-    screenWLimit = screenW - camera.offset.x
-    screenHLimit = screenH - camera.offset.y
-    if (screenPosX <= screenWLimit and screenPosX >= 0) and (screenPosY <= screenHLimit and screenPosY >= 0):
+    screenPosX = position[0] 
+    screenPosY = position[1] 
+    screenWLimit = screenW + camera.offset.x
+    screenHLimit = screenH + camera.offset.y
+    if (screenPosX <= screenWLimit and screenPosX >= (screenWLimit-screenW)) and (screenPosY <= screenHLimit and screenPosY >= (screenHLimit-screenH)):
         return True
     else:
         return False
+
 #################### CREATE GROUPS/LISTS ####################
 
 allSprites = pygame.sprite.Group() # Group of all Sprites. Must have a hitbox rect called 'hitboxRect'

@@ -26,6 +26,9 @@ class VectorFieldPathfinding():
             'visited' : 3,
             'vector' : 4
         }
+    
+    def ResetTarget(self, targetRect):
+        self.targetRect = targetRect
 
     def CreateMap(self):
         self.CleanPath()
