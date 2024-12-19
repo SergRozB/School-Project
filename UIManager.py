@@ -33,7 +33,7 @@ class UIManager():
         # Points text
         pointsTextInput = "Points: "
         pointsTextInput += str(player.points)
-        self.BlitText(screen, font, pointsTextInput, "white", (self.screenW * 0.2, self.screenH * 0.9))
+        self.BlitText(screen, font, pointsTextInput, "white", (self.screenW * 0.25, self.screenH * 0.9))
         # Current item box
         frameBehindItemSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
         frameBehindItemSurface = pygame.transform.scale(frameBehindItemSurface, (frameBehindItemSurface.get_rect().w*2, frameBehindItemSurface.get_rect().h*2))
@@ -137,9 +137,11 @@ class UIManager():
         attackSpeedText += self.StatsJudgement(survivor.attackSpeed, survivor.attackSpeedRange, True)
         awarenessText = "Awareness: "
         awarenessText += self.StatsJudgement(survivor.awareness, survivor.awarenessRange, False)
+        itemNameText = "Name: "
+        itemNameText += survivor.currentItem.name
         top = self.screenH * 0.3
         textBackSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
-        textBackSurface = pygame.transform.scale(textBackSurface, (textBackSurface.get_rect().w*10, size*6))
+        textBackSurface = pygame.transform.scale(textBackSurface, (textBackSurface.get_rect().w*10, size*7))
         rect = textBackSurface.get_rect()
         rect.center = (xCoord, 0)
         rect.top = top - size
@@ -149,6 +151,7 @@ class UIManager():
         self.BlitText(screen, font, speedText, colour, (xCoord, top+(size*2)))
         self.BlitText(screen, font, attackSpeedText, colour, (xCoord, top+(size*3)))
         self.BlitText(screen, font, awarenessText, colour, (xCoord, top+(size*4)))
+        self.BlitText(screen, font, itemNameText, colour, (xCoord, top+size*5))
 
     def DayUI(self, storeItems):
         # Creates UI for daytime
@@ -173,7 +176,7 @@ class UIManager():
     def MenuFunctions(self, name):
         if name == "Quit":
             pygame.quit()
-        if name == "Resume":
+        if name == "Resume" or "Start":
             self.load = True
             self.clearUI = True
     
@@ -182,6 +185,17 @@ class UIManager():
         resumeSurface = pygame.image.load("SpriteImages\WornButton.png")
         resumeSurface = pygame.transform.scale(resumeSurface, (200, 75))
         resumeButton = Button.Button(resumeSurface, self.screenW*0.5, self.screenH*0.4, "Resume", 30, "Resume", True)
+        self.buttonList.append(resumeButton)
+        quitSurface = pygame.image.load("SpriteImages\WornButton.png")
+        quitSurface = pygame.transform.scale(quitSurface, (200, 75))
+        quitButton = Button.Button(quitSurface, self.screenW*0.5, self.screenH*0.6, "Quit", 30, "Quit", True)
+        self.buttonList.append(quitButton)
+    
+    def StartScreen(self):
+        self.buttonList.clear()
+        resumeSurface = pygame.image.load("SpriteImages\WornButton.png")
+        resumeSurface = pygame.transform.scale(resumeSurface, (200, 75))
+        resumeButton = Button.Button(resumeSurface, self.screenW*0.5, self.screenH*0.4, "Start", 30, "Start", True)
         self.buttonList.append(resumeButton)
         quitSurface = pygame.image.load("SpriteImages\WornButton.png")
         quitSurface = pygame.transform.scale(quitSurface, (200, 75))

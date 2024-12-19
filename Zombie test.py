@@ -35,8 +35,8 @@ top = 0
 
 mapW = 32*widthOfMap
 mapH = 32*len(MapMaker.map)
-screenW = 1500
-screenH = 900
+screenW = 1200
+screenH = 800
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -157,7 +157,7 @@ class Player(MoveObject):
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 0 # Stores the number of points the player has
+        self.points = 100 # Stores the number of points the player has
         self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -773,7 +773,7 @@ class WaveManager():
         self.isDay = False   
         self.waveCount = 0 
         self.maxWave = 3
-        self.survivorSpawnWaves = [0,2,4] # list of waves after which a survivor is spawned
+        self.survivorSpawnWaves = [0,1,2,4] # list of waves after which a survivor is spawned
 
     def NextWave(self, uiManager):
         print("next wave")
@@ -781,7 +781,7 @@ class WaveManager():
         uiManager.RemoveDayUI()
         self.waveCount += 1
         if self.waveCount == 1:
-            self.spawnNumber = 15
+            self.spawnNumber = 1
         elif self.waveCount == 2:
             self.spawnNumber = 2
         elif self.waveCount == 3:
@@ -936,7 +936,9 @@ class RangedWeapon():
                 self.totalAmmo = 0
     
     def Shoot(self, user):
-        Bullet(user.pos, 1000, self.damage, user.lookDirection)
+        randomSpread = random.randint(-self.spread, self.spread)
+        direction = user.lookDirection.rotate(randomSpread)
+        Bullet(user.pos, 1000, self.damage, direction)
     
     def ReturnRange(self):
         # Returns the range of the weapon from the user
@@ -1024,7 +1026,8 @@ survivorSprites = pygame.sprite.Group()
 
 #################### CREATE OBJECTS ####################
 
-AutoRifle = RangedWeapon(10, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "M4 Rifle")
+AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "M4 Rifle")
+Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "Pistol")
 Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
 Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
 HealthBooster = Boosters.HealthBooster()
@@ -1070,7 +1073,7 @@ waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemy
 
 lastTimeSincePath = 0
 
-storeItems = [HealthBooster, SpeedBooster, StrengthBooster, AttackSpeedBooster, Axe, AutoRifle]
+storeItems = [HealthBooster, SpeedBooster, StrengthBooster, AttackSpeedBooster, Axe, Pistol, AutoRifle]
 
 #################### SPAWN ZOMBIES ####################
 
@@ -1206,10 +1209,36 @@ def dead():
         uiManager.MenuUpdate(screen)
         if uiManager.load == True:
             uiManager.load = False
-            print("helllooooooo")
             Load()
             main()
         pygame.display.update()
-main()
+
+def start():
+    global leftMButtonHeld
+    pygame.display.set_caption("Ded")
+    global dt
+    global lastTime
+    uiManager.StartScreen()
+    while True:
+        screen.fill("black")
+        dt = time.time() - lastTime
+        lastTime = time.time()
+        screen.fill(black)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                leftMButtonHeld = True
+
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                leftMButtonHeld = False
+        uiManager.mouseButtonPressed = leftMButtonHeld
+        uiManager.MenuUpdate(screen)
+        if uiManager.load == True:
+            uiManager.load = False
+            Load()
+            main()
+        pygame.display.update()
+start()
 #cProfile.runctx('Enemy.Update()', globals(), locals())
 pygame.quit()
