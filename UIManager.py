@@ -137,7 +137,7 @@ class UIManager():
         attackSpeedText += self.StatsJudgement(survivor.attackSpeed, survivor.attackSpeedRange, True)
         awarenessText = "Awareness: "
         awarenessText += self.StatsJudgement(survivor.awareness, survivor.awarenessRange, False)
-        itemNameText = "Name: "
+        itemNameText = "Weapon: "
         itemNameText += survivor.currentItem.name
         top = self.screenH * 0.3
         textBackSurface = pygame.image.load("SpriteImages\SquareWornButton.png")

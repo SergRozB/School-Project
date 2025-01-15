@@ -35,8 +35,8 @@ top = 0
 
 mapW = 32*widthOfMap
 mapH = 32*len(MapMaker.map)
-screenW = 1200
-screenH = 800
+screenW = 1500
+screenH = 1000
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -126,7 +126,7 @@ class MoveObject(pygame.sprite.Sprite):
     def CreateLocalRects(self, sprites):
         self.localRects = {}
         for sprite in sprites:
-            if sprite != self:
+            if sprite != self and sprite not in MapMaker.groundList:
                 self.localRects[sprite] = sprite.hitboxRect
     
     def Update(self):
@@ -342,7 +342,7 @@ class Player(MoveObject):
 
             # Checks if the q key is pressed, and if so carries out the go to point command
             if keys[pygame.K_q]:
-                uiManager.AddNotification("Select where to move survivor")
+                uiManager.AddNotification("Right click to move survivor")
                 self.givingCommand = True
     
     def GiveCommand(self):
@@ -966,7 +966,7 @@ def DrawMinimap():
             image = pygame.Surface((32, 32))
             image.fill(red)
             drawnRect = image.get_rect(center = sprite.hitboxRect.center)
-        else:
+        elif sprite in MapMaker.wallList:
             image = pygame.Surface((32, 32))
             image.fill(white)
             drawnRect = image.get_rect(center = sprite.hitboxRect.center)
@@ -1053,6 +1053,8 @@ MapMaker.CreateMap(MapMaker.map)
 for wall in MapMaker.wallList:
     allSprites.add(wall)
     obstacles.add(wall)
+for ground in MapMaker.groundList:
+    allSprites.add(ground)
 
 player.CreateLocalRects(allSprites)
 zombieAttackSprites.add(player)
@@ -1106,6 +1108,7 @@ def main():
     global leftMButtonHeld
     global leftMButtonPressed
     global rightMButtonPressed
+    pygame.display.set_caption("Zombie Swarm")
     while True:
         dt = time.time() - lastTime
         lastTime = time.time()
@@ -1188,7 +1191,7 @@ def main():
 #################### DEATH GAME LOOP ####################
 def dead():
     global leftMButtonHeld
-    pygame.display.set_caption("Ded")
+    pygame.display.set_caption("Dead")
     global dt
     global lastTime
     uiManager.GameOverScreen()
@@ -1215,7 +1218,7 @@ def dead():
 
 def start():
     global leftMButtonHeld
-    pygame.display.set_caption("Ded")
+    pygame.display.set_caption("Start")
     global dt
     global lastTime
     uiManager.StartScreen()
