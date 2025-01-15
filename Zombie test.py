@@ -36,7 +36,7 @@ top = 0
 mapW = 32*widthOfMap
 mapH = 32*len(MapMaker.map)
 screenW = 1500
-screenH = 1000
+screenH = 900
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -296,7 +296,8 @@ class Player(MoveObject):
             survivorY = (self.selectedSurvivor.hitboxRect.centery - camera.offset.y) * zoomLevel
             rectToDraw = pygame.rect.Rect(0, 0, self.selectedSurvivor.hitboxRect.w + wiggleRoom, self.selectedSurvivor.hitboxRect.h + wiggleRoom)
             rectToDraw.center = (survivorX, survivorY)
-            pygame.draw.rect(screen, colour, rectToDraw, 2)
+            rectsToDraw.append((colour, rectToDraw, 2))
+            #pygame.draw.rect(screen, colour, rectToDraw, 2)
 
         for survivor in survivorSprites:
             survivorX = (survivor.hitboxRect.centerx - camera.offset.x) * zoomLevel
@@ -309,7 +310,8 @@ class Player(MoveObject):
             if mPos[0] in range(survivorLeft, survivorRight) and mPos[1] in range(survivorTop, survivorBottom) and not self.selectedSurvivor == survivor:
                 rectToDraw = pygame.rect.Rect(0, 0, survivor.hitboxRect.w + wiggleRoom, survivor.hitboxRect.h + wiggleRoom)
                 rectToDraw.center = (survivorX, survivorY)
-                pygame.draw.rect(screen, "green", rectToDraw, 2)
+                rectsToDraw.append(("green", rectToDraw, 2))
+                #pygame.draw.rect(screen, "green", rectToDraw, 2)
                 if rightMButtonPressed:
                     self.selectedSurvivor = survivor
                     clickedSurvivor = True
@@ -1000,12 +1002,23 @@ def Load():
 def IsOnScreen(position):
     screenPosX = position[0] 
     screenPosY = position[1] 
-    screenWLimit = screenW + camera.offset.x
-    screenHLimit = screenH + camera.offset.y
+    #print("offset:", (camera.offset.x, camera.offset.y))
+    screenWLimit = (screenW/zoomLevel) + camera.offset.x 
+    screenHLimit = (screenH/zoomLevel) + camera.offset.y 
     if (screenPosX <= screenWLimit and screenPosX >= (screenWLimit-screenW)) and (screenPosY <= screenHLimit and screenPosY >= (screenHLimit-screenH)):
         return True
     else:
         return False
+
+def DrawBackground():
+    image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\BigGround.png").convert_alpha(), 0, 50)
+    screen.blit(image, (0-camera.offset.x*zoomLevel, 0-camera.offset.y*zoomLevel))
+
+def DrawRects():
+    for item in rectsToDraw:
+        # each item in format (colour, rect, width)
+        pygame.draw.rect(screen, item[0], item[1], item[2])
+        rectsToDraw.remove(item)
 
 #################### CREATE GROUPS/LISTS ####################
 
@@ -1023,6 +1036,7 @@ UISprites = pygame.sprite.Group()
 zombieAttackSprites = pygame.sprite.Group() # Group of sprites the zombies will attack
 storeItems = []
 survivorSprites = pygame.sprite.Group()
+rectsToDraw = [] # In format (colour, rect, width)
 
 #################### CREATE OBJECTS ####################
 
@@ -1139,7 +1153,7 @@ def main():
                     player.ScrollInventory("up")
                 elif event.y == -1:
                     player.ScrollInventory("down")
-        
+
         for sprite in liveSprites:
             sprite.Update()
             #print("name:", type(sprite).__name__)
@@ -1149,6 +1163,8 @@ def main():
         leftMButtonPressed = False
         rightMButtonPressed = False
         camera.scroll()
+        DrawBackground()
+        DrawRects()
         for sprite in allSprites:
             if IsOnScreen(sprite.hitboxRect.center):
                 drawnRect = sprite.rect.copy()
@@ -1181,7 +1197,6 @@ def main():
             # ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
         DrawMinimap()
-
         #pathFindPlayer.DrawVectorMap(screen, camera)    
         #pathFindPlayer.DrawHeatMap(screen, camera)
         waveManager.Update(enemySprites, uiManager)
