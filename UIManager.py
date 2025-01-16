@@ -78,9 +78,11 @@ class UIManager():
                 self.notificationTimeDict.pop(notification[1])
     
     def SurvivorSelectionUI(self, screen):
-        fontSize = 20
+        baseWidth = 1500 # The optimal width which the scaling is based on
+        widthMultiplier = screen.get_width() / baseWidth
+        fontSize = int(20 * widthMultiplier)
         middleY = self.screenH * 0.3
-        xValue = self.screenW * 0.1
+        xValue = self.screenW * 0.15
         font = pygame.font.SysFont("cambria", fontSize)
         instructionF = "Press F to make Survivor follow" 
         instructionG = "Press G to give Survivor weapon"
@@ -123,7 +125,9 @@ class UIManager():
                 return "Excellent"
     
     def SurvivorInfo(self, screen, survivor):
-        size = 30
+        baseWidth = 1500 # The optimal width which the scaling is based on
+        widthMultiplier = screen.get_width() / baseWidth
+        size = int(30 *widthMultiplier)
         xCoord = self.screenW * 0.9
         colour = "black"
         font = pygame.font.SysFont("cambria", size)
@@ -141,7 +145,7 @@ class UIManager():
         itemNameText += survivor.currentItem.name
         top = self.screenH * 0.3
         textBackSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
-        textBackSurface = pygame.transform.scale(textBackSurface, (textBackSurface.get_rect().w*10, size*7))
+        textBackSurface = pygame.transform.scale(textBackSurface, (textBackSurface.get_rect().w*10*widthMultiplier, size*7))
         rect = textBackSurface.get_rect()
         rect.center = (xCoord, 0)
         rect.top = top - size

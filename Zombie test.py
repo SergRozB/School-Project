@@ -35,8 +35,8 @@ top = 0
 
 mapW = 32*widthOfMap
 mapH = 32*len(MapMaker.map)
-screenW = 1500
-screenH = 900
+screenW = 1200
+screenH = 800
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -459,7 +459,6 @@ class Survivor(MoveObject):
         dist = math.sqrt(xDist**2 + yDist**2)
         #print("dist:", dist, "| attack range:", self.currentItem.ReturnRange())
         if dist <= keepDistance:
-            print("in range!")
             if self.followingCommand:
                 self.followingCommand = False
                 self.hasTarget = False
@@ -654,7 +653,6 @@ class Enemy(MoveObject):
         self.health -= damage
         self.timeSinceTint = time.time()
         if self.health <= 0:
-            print("DIE")
             if not self.died:
                 player.points += 1
             self.died = True
@@ -703,7 +701,6 @@ class Bullet(MoveObject):
         # Create the image of the bullet
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages/bullet.png").convert_alpha(), 0, 1)
         self.baseImage = self.image.copy()
-        print("self pos:", self.pos, "| starting pos:", startingPos)
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.image.get_rect()
         self.image = pygame.transform.rotate(self.baseImage, self.GetAngle())
@@ -738,7 +735,6 @@ class Bullet(MoveObject):
         if collidedWith:
             spriteCollidedWith = collidedWith[0]
             if spriteCollidedWith != player and spriteCollidedWith not in survivorSprites and spriteCollidedWith not in bullets and spriteCollidedWith in allSprites:
-                print("sprite name:", type(spriteCollidedWith).__name__)
                 if spriteCollidedWith in liveSprites:
                     self.DealDamage(spriteCollidedWith)
                     self.kill()
@@ -778,7 +774,6 @@ class WaveManager():
         self.survivorSpawnWaves = [0,1,2,4] # list of waves after which a survivor is spawned
 
     def NextWave(self, uiManager):
-        print("next wave")
         self.isDay = False
         uiManager.RemoveDayUI()
         self.waveCount += 1
@@ -812,7 +807,6 @@ class WaveManager():
         self.zombieCount = len(enemySprites)
         if self.zombieCount == 0 and not self.isDay:
             if self.waveCount != self.maxWave:
-                print("Turn Day")
                 self.Daytime(uiManager)
                 self.isDay = True
             else:
@@ -821,7 +815,6 @@ class WaveManager():
     def SpawnZombies(self, enemySpawn):
         # Spawns a number of zombies equivalent to the 'spawn number' in
         # the spawn areas. These spawn areas have to be initiated beforehand.
-        print("generate wave")
         borderOffsetX = 16
         borderOffsetY = 16
         leftX = enemySpawn.rect.left+borderOffsetX
@@ -840,7 +833,6 @@ class WaveManager():
             enemy.CreateLocalRects(allSprites)
         player.CreateLocalRects(allSprites)
         for survivor in survivorSprites:
-            print("survivrorovrv")
             survivor.CreateLocalRects(allSprites)
     
     def Reset(self):
@@ -894,8 +886,6 @@ class MeleeWeapon():
             zombieRectMask.fill()
             offset = (rect.x - zombieRect.x, rect.y - zombieRect.y)
             if rangeMask.overlap(zombieRectMask, offset) and index < len(enemyRects):
-                print("INDEX:", index, "| len:", len(listOfRects))
-                print("enemy rects:", enemyRects)
                 zombie = enemyRects[index][1]
                 zombie.TakeDamage(self.damage * user.strength)
     
@@ -921,9 +911,7 @@ class RangedWeapon():
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
-        print("current ammo:", self.currentAmmo)
         if timeSince >= self.fireRate and self.currentAmmo > 0:
-            print("FIRED!")
             self.lastFired = time.time()
             self.Shoot(user)
             self.currentAmmo -= 1
@@ -1017,6 +1005,8 @@ def DrawBackground():
 def DrawRects():
     for item in rectsToDraw:
         # each item in format (colour, rect, width)
+        itemX, itemY = item[1].center
+        #item[1].center = ((itemX-camera.offset.x)*zoomLevel, (itemY-camera.offset.y)*zoomLevel)
         pygame.draw.rect(screen, item[0], item[1], item[2])
         rectsToDraw.remove(item)
 
@@ -1095,10 +1085,6 @@ storeItems = [HealthBooster, SpeedBooster, StrengthBooster, AttackSpeedBooster, 
 
 borderOffsetX = 16
 borderOffsetY = 16
-print("BROL:", enemySpawnTop.rect.left, "| BROR:", enemySpawnTop.rect.right)
-print("BROu:", enemySpawnTop.rect.top, "| BROd:", enemySpawnTop.rect.bottom)
-print("BROL:", enemySpawnTop.rect.left+borderOffsetX, "| BROR:", enemySpawnTop.rect.right-borderOffsetX)
-print("BROu:", enemySpawnTop.rect.top+borderOffsetX, "| BROd:", enemySpawnTop.rect.bottom-borderOffsetX)
 #allSprites.add(TestWall((enemySpawnTop.rect.left+borderOffsetX, enemySpawnTop.rect.top+borderOffsetX)))
 #allSprites.add(TestWall((enemySpawnTop.rect.left+borderOffsetX, enemySpawnTop.rect.bottom-borderOffsetX)))
 #allSprites.add(TestWall((enemySpawnTop.rect.right-borderOffsetX, enemySpawnTop.rect.top+borderOffsetX)))
@@ -1109,7 +1095,6 @@ topY = enemySpawnTop.rect.top+borderOffsetY
 bottomY = enemySpawnTop.rect.bottom-borderOffsetY
 for _ in range(0):
     randomCoords = ((random.randint(leftX, rightX), random.randint(topY, bottomY)))
-    print("coords:", randomCoords)
     allSprites.add(TempObject(randomCoords))
 
 #################### MAIN GAME LOOP ####################
@@ -1163,7 +1148,7 @@ def main():
         leftMButtonPressed = False
         rightMButtonPressed = False
         camera.scroll()
-        DrawBackground()
+        #DrawBackground()
         DrawRects()
         for sprite in allSprites:
             if IsOnScreen(sprite.hitboxRect.center):
