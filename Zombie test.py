@@ -157,7 +157,7 @@ class Player(MoveObject):
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 100 # Stores the number of points the player has
+        self.points = 0 # Stores the number of points the player has
         self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -868,24 +868,25 @@ class MeleeWeapon():
             rangeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle)
         else:
             rangeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle - 90)
-        rangeMask = pygame.mask.from_surface(rangeImage)
-        maskImage = rangeMask.to_surface()
-        rect = rangeImage.get_rect()
+        #rangeMask = pygame.mask.from_surface(rangeImage)
+        #maskImage = rangeMask.to_surface()
+        rect = pygame.rect.Rect(0, 0, self.attackRange*32, self.attackRange*32)
         offsetVector = pygame.math.Vector2(user.hitboxRect.centerx+user.lookDirection.x*16*self.attackRange, user.hitboxRect.centery+user.lookDirection.y*16*self.attackRange)
         rect.center = offsetVector
         #print("rect center:", rect.center)
-        #pygame.draw.rect(screen, "green", rect)
-        #screen.blit(maskImage, ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
-        screen.blit(pygame.transform.scale(maskImage, (rect.w * zoomLevel, rect.h * zoomLevel)), 
-                        ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
+        pygame.draw.rect(screen, "green", rect)
+        #screen.blit(rangeImage, ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
+       # screen.blit(pygame.transform.scale(maskImage, (rect.w * zoomLevel, rect.h * zoomLevel)), 
+                        #((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
         listOfRects = [item[0] for item in enemyRects]
         indices = rect.collidelistall(listOfRects)
         for index in indices:
-            zombieRect = listOfRects[index]
-            zombieRectMask = pygame.mask.Mask((zombieRect.width, zombieRect.height))
-            zombieRectMask.fill()
-            offset = (rect.x - zombieRect.x, rect.y - zombieRect.y)
-            if rangeMask.overlap(zombieRectMask, offset) and index < len(enemyRects):
+            #zombieRect = listOfRects[index]
+            #zombieRectMask = pygame.mask.Mask((zombieRect.width, zombieRect.height))
+            #zombieRectMask.fill()
+            #offset = (rect.x - zombieRect.x, rect.y - zombieRect.y)
+            #if rangeMask.overlap(zombieRectMask, offset) and index < len(enemyRects):
+            if index < len(enemyRects):
                 zombie = enemyRects[index][1]
                 zombie.TakeDamage(self.damage * user.strength)
     

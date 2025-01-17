@@ -48,10 +48,10 @@ map = """WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W    W                            WWW                              W    W
     W    W                                                             W    W
     W    W                 WWW                                         W    W
-    W    W                 WWW           WWW                           W    W
+    W    W     WWW         WWW           WWW                           W    W
     WWWWWW     WWW         WWW           WWW         www               WWWWWW
          W     WWW                       WWW         www               W
-         W     WWW                                   www               W
+         W                                           www               W
          W                                                             W
          WWWWW   WWWWWWWWWWWWWWWWWWWW   WWWWWWWWWWWWWWWWWWWWWWWW   WWWWW                                         
          W                                                             W
