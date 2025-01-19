@@ -935,6 +935,15 @@ class RangedWeapon():
         # Returns the range of the weapon from the user
         return 100000
 
+class Animation():
+    def __init__(self, frames, timePerFrame):
+        self.framesList = frames
+        self.timePerFrame = timePerFrame
+        self.lastTime = 0
+    
+    def PlayAnimation(self):
+        
+
 def DrawMinimap():
     size = 0.1
     image = pygame.Surface((32, 32))
@@ -1032,7 +1041,7 @@ rectsToDraw = [] # In format (colour, rect, width)
 #################### CREATE OBJECTS ####################
 
 AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "M4 Rifle")
-Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "Pistol")
+Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\PistolSprite.png", 8, "Pistol")
 Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
 Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
 HealthBooster = Boosters.HealthBooster()
