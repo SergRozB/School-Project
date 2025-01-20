@@ -180,7 +180,9 @@ class Player(MoveObject):
         self.baseAxeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSpriteAxe.png").convert_alpha(), 0, 1)
 
         # Animations
-        self.axeAnimation = Animation(AnimationFrames.playerAxeFrames, 0.1)
+        self.currentAnimation = None
+        self.axeAnimation = Animation(AnimationFrames.playerAxeFrames, Axe.attackSpeed/7)
+        self.axeAttackFrame = AnimationFrames.axeDamageFrame
     
     def ManageStatusEffects(self):
         fontSize = 20
@@ -221,9 +223,18 @@ class Player(MoveObject):
             if leftMButtonHeld and currentItem.isWeapon:
                 if currentItem.name == "Axe":
                     self.axeAnimation.Animate()
-                currentItem.Use(self)
+                    self.currentAnimation = self.axeAnimation
+                    currentItem.UseAnim(self)
+                else:
+                    currentItem.Use(self)
             elif leftMButtonPressed and not currentItem.isWeapon:
                 currentItem.Use(self)
+    
+    def AttackDuringAnim(self, currentItem):
+        # Times the dealing of damage of an item with the animation of the item
+        if currentItem.name == "Axe" and self.axeAnimation.currentFrame == self.axeAttackFrame:
+            currentItem.Attack(self)
+
     
     def GetCurrentItem(self):
         return self.inventory[self.currentItem]
@@ -407,6 +418,10 @@ class Player(MoveObject):
         if self.givingCommand:
             self.GiveCommand()
         self.BaseImageManager()
+        currentItem = self.GetCurrentItem()
+        if currentItem.isWeapon:
+            if currentItem.attackingDuringAnim:
+                self.AttackDuringAnim(currentItem)
         self.CheckControls()
         self.Move(True)
         self.RotateToMouse()
@@ -798,7 +813,7 @@ class WaveManager():
         self.isDay = False   
         self.waveCount = 0 
         self.maxWave = 3
-        self.survivorSpawnWaves = [0,1,2,4] # list of waves after which a survivor is spawned
+        self.survivorSpawnWaves = [2, 4] # list of waves after which a survivor is spawned
 
     def NextWave(self, uiManager):
         self.isDay = False
@@ -879,6 +894,7 @@ class MeleeWeapon():
         self.isWeapon = True
         self.isDefault = isDefault
         self.name = name
+        self.attackingDuringAnim = False # Stores whether the weapon is attacking during an animation
     
     def Use(self, user):
         # Function called when the weapon is used
@@ -887,6 +903,15 @@ class MeleeWeapon():
             #print("USED!")
             self.lastUsed = time.time()
             self.Attack(user)
+    
+    def UseAnim(self, user):
+        # Function called when the weapon is used with animation
+        # Ensures damage is dealt in line with animation
+        timeSince = time.time() - self.lastUsed
+        if timeSince >= self.attackSpeed * user.attackSpeed:
+            #print("USED!")
+            self.lastUsed = time.time()
+            self.attackingDuringAnim = True
     
     def Attack(self, user):
         # Deals damage to the zombie colliding with the rect
@@ -901,7 +926,7 @@ class MeleeWeapon():
         offsetVector = pygame.math.Vector2(user.hitboxRect.centerx+user.lookDirection.x*16*self.attackRange, user.hitboxRect.centery+user.lookDirection.y*16*self.attackRange)
         rect.center = offsetVector
         #print("rect center:", rect.center)
-        pygame.draw.rect(screen, "green", rect)
+        #pygame.draw.rect(screen, "green", rect)
         #screen.blit(rangeImage, ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
        # screen.blit(pygame.transform.scale(maskImage, (rect.w * zoomLevel, rect.h * zoomLevel)), 
                         #((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
@@ -936,6 +961,7 @@ class RangedWeapon():
         self.isWeapon = True
         self.isDefault = False
         self.name = name
+        self.attackingDuringAnim = False # Stores whether the weapon is attacking during an animation
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
@@ -990,7 +1016,7 @@ class Animation():
                 return self.framesList[frameToReturn]
         else:
             return self.framesList[self.currentFrame]
-
+    
 def DrawMinimap():
     size = 0.1
     image = pygame.Surface((32, 32))
