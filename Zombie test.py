@@ -10,6 +10,7 @@ import cProfile
 import Pathfinding
 import copy
 import Boosters
+import AnimationFrames
 
 pygame.init()
 zoomLevel = Camera.zoomLevel
@@ -143,6 +144,7 @@ class Player(MoveObject):
         # Create the image of the player
         self.image = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSprite.png").convert_alpha(), 0, 1)
         self.basePlayerImage = self.image
+        self.baseImage = self.basePlayerImage
 
         # Get a rectangle object that shows where our image is
         self.hitboxRect = self.basePlayerImage.get_rect(center = self.pos)
@@ -157,7 +159,7 @@ class Player(MoveObject):
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 0 # Stores the number of points the player has
+        self.points = 4 # Stores the number of points the player has
         self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -173,6 +175,12 @@ class Player(MoveObject):
         self.hasStrengthBoost = False
         self.hasAttackSpeedBoost = False
         self.statusList = []
+
+        # Base Images
+        self.baseAxeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\AxeSprite.png").convert_alpha(), 0, 1)
+
+        # Animations
+        self.axeAnimation = Animation(AnimationFrames.playerAxeFrames, 0.1)
     
     def ManageStatusEffects(self):
         fontSize = 20
@@ -209,6 +217,8 @@ class Player(MoveObject):
 
     def UseItem(self):
         currentItem = self.GetCurrentItem()
+        if currentItem.name == "Axe":
+            self.axeAnimation.Animate()
         if not waveManager.isDay:
             if leftMButtonHeld and currentItem.isWeapon:
                 currentItem.Use(self)
@@ -257,6 +267,21 @@ class Player(MoveObject):
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             self.direction.y = 1
 
+    def BaseImageManager(self):
+        if self.GetCurrentItem().name == "Axe":
+            self.baseImage = self.baseAxeImage
+        else:
+            self.baseImage = self.basePlayerImage
+
+    def PlayAnimations(self):
+        if self.axeAnimation.animate:
+            image = self.axeAnimation.PlayAnimation()
+            if image:
+                print("image:", image)
+                return image
+        else:
+            return self.basePlayerImage
+
     def RotateToMouse(self):
         x = self.hitboxRect.centerx 
         y = self.hitboxRect.centery 
@@ -268,7 +293,7 @@ class Player(MoveObject):
         self.lookDirection = pygame.math.Vector2(xDist, yDist)
         self.lookDirection = self.lookDirection.normalize()
         self.angle = math.degrees(math.atan2(yDist, xDist)) + 90
-        self.image = pygame.transform.rotate(self.basePlayerImage, -self.angle)
+        self.image = pygame.transform.rotate(self.PlayAnimations(), -self.angle)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
         #startPosX = (self.hitboxRect.centerx - camera.offset.x) * zoomLevel
         #startPosY = (self.hitboxRect.centery - camera.offset.y) * zoomLevel
@@ -374,7 +399,7 @@ class Player(MoveObject):
                 uiManager.AddNotification("Can't access selected location")
                 self.selectedSurvivor = None
                 self.givingCommand = False
-
+    
     def Update(self):
         """ Update the position of the player """
         self.oldRect = self.hitboxRect.copy()
@@ -936,13 +961,35 @@ class RangedWeapon():
         return 100000
 
 class Animation():
+    # Represents an animation
     def __init__(self, frames, timePerFrame):
         self.framesList = frames
+        self.frameCount = len(self.framesList)
         self.timePerFrame = timePerFrame
         self.lastTime = 0
+        self.currentFrame = 0
+        self.animate = False
+    
+    def Animate(self):
+        self.animate = True
     
     def PlayAnimation(self):
-        
+        # Returns the next frame in the animation.
+        # If the last frame is reached, the function returns false
+        #print("times:", self.timePerFrame, "| ", time.time() - self.lastTime)
+        if self.timePerFrame <= (time.time() - self.lastTime):
+            if self.currentFrame == self.frameCount:
+                self.lastTime = 0
+                self.animate = False
+                self.currentFrame = 0
+                return False
+            else:
+                self.lastTime = time.time()
+                frameToReturn = self.currentFrame
+                self.currentFrame += 1
+                return self.framesList[frameToReturn]
+        else:
+            return self.framesList[self.currentFrame]
 
 def DrawMinimap():
     size = 0.1
