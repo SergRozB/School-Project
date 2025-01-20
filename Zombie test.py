@@ -177,7 +177,7 @@ class Player(MoveObject):
         self.statusList = []
 
         # Base Images
-        self.baseAxeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\AxeSprite.png").convert_alpha(), 0, 1)
+        self.baseAxeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSpriteAxe.png").convert_alpha(), 0, 1)
 
         # Animations
         self.axeAnimation = Animation(AnimationFrames.playerAxeFrames, 0.1)
@@ -217,10 +217,10 @@ class Player(MoveObject):
 
     def UseItem(self):
         currentItem = self.GetCurrentItem()
-        if currentItem.name == "Axe":
-            self.axeAnimation.Animate()
         if not waveManager.isDay:
             if leftMButtonHeld and currentItem.isWeapon:
+                if currentItem.name == "Axe":
+                    self.axeAnimation.Animate()
                 currentItem.Use(self)
             elif leftMButtonPressed and not currentItem.isWeapon:
                 currentItem.Use(self)
@@ -277,10 +277,11 @@ class Player(MoveObject):
         if self.axeAnimation.animate:
             image = self.axeAnimation.PlayAnimation()
             if image:
-                print("image:", image)
                 return image
+            else:
+                return self.baseImage
         else:
-            return self.basePlayerImage
+            return self.baseImage
 
     def RotateToMouse(self):
         x = self.hitboxRect.centerx 
@@ -405,6 +406,7 @@ class Player(MoveObject):
         self.oldRect = self.hitboxRect.copy()
         if self.givingCommand:
             self.GiveCommand()
+        self.BaseImageManager()
         self.CheckControls()
         self.Move(True)
         self.RotateToMouse()
@@ -976,14 +978,12 @@ class Animation():
     def PlayAnimation(self):
         # Returns the next frame in the animation.
         # If the last frame is reached, the function returns false
-        #print("times:", self.timePerFrame, "| ", time.time() - self.lastTime)
-        if self.timePerFrame <= (time.time() - self.lastTime):
-            if self.currentFrame == self.frameCount:
+        if self.currentFrame == self.frameCount:
                 self.lastTime = 0
                 self.animate = False
                 self.currentFrame = 0
                 return False
-            else:
+        if self.timePerFrame <= (time.time() - self.lastTime):
                 self.lastTime = time.time()
                 frameToReturn = self.currentFrame
                 self.currentFrame += 1
