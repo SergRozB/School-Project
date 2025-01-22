@@ -12,3 +12,10 @@ playerAxeFrames.append(image.load("SpriteImages\AxeSwing5.png"))
 playerAxeFrames.append(image.load("SpriteImages\AxeSwing6.png"))
 playerAxeFrames.append(image.load("SpriteImages\AxeSwing7.png"))
 axeDamageFrame = 4 # Frame where damage should be inflicted
+
+# Player Rifle Frames
+
+playerRifleFrames = []
+playerRifleFrames.append(image.load("SpriteImages\PlayerSpriteAutorifle1.png"))
+playerRifleFrames.append(image.load("SpriteImages\PlayerSpriteAutorifle2.png"))
+rifleFireFrame = 1

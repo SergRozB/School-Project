@@ -159,7 +159,7 @@ class Player(MoveObject):
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 4 # Stores the number of points the player has
+        self.points = 15 # Stores the number of points the player has
         self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -177,12 +177,16 @@ class Player(MoveObject):
         self.statusList = []
 
         # Base Images
-        self.baseAxeImage = pygame.transform.rotozoom(pygame.image.load("SpriteImages\PlayerSpriteAxe.png").convert_alpha(), 0, 1)
+        self.baseAxeImage = pygame.image.load("SpriteImages\PlayerSpriteAxe.png").convert_alpha()
+        self.baseRifleImage = pygame.image.load("SpriteImages\PlayerSpriteAutorifle.png").convert_alpha()
 
         # Animations
         self.currentAnimation = None
         self.axeAnimation = Animation(AnimationFrames.playerAxeFrames, Axe.attackSpeed/7)
         self.axeAttackFrame = AnimationFrames.axeDamageFrame
+
+        self.rifleAnimation = Animation(AnimationFrames.playerRifleFrames, AutoRifle.fireRate/2)
+        self.rifleFireFrame = AnimationFrames.rifleFireFrame
     
     def ManageStatusEffects(self):
         fontSize = 20
@@ -225,6 +229,11 @@ class Player(MoveObject):
                     self.axeAnimation.Animate()
                     self.currentAnimation = self.axeAnimation
                     currentItem.UseAnim(self)
+                elif currentItem.name == "Auto Rifle":
+                    #print("hhhfe")
+                    self.rifleAnimation.Animate()
+                    self.currentAnimation = self.rifleAnimation
+                    currentItem.UseAnim(self)
                 else:
                     currentItem.Use(self)
             elif leftMButtonPressed and not currentItem.isWeapon:
@@ -235,7 +244,10 @@ class Player(MoveObject):
         if currentItem.name == "Axe" and self.axeAnimation.currentFrame == self.axeAttackFrame:
             currentItem.Attack(self)
 
-    
+        elif currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
+            #print("hefh ehfe")
+            currentItem.Shoot(self)
+
     def GetCurrentItem(self):
         return self.inventory[self.currentItem]
     
@@ -281,12 +293,20 @@ class Player(MoveObject):
     def BaseImageManager(self):
         if self.GetCurrentItem().name == "Axe":
             self.baseImage = self.baseAxeImage
+        elif self.GetCurrentItem().name == "Auto Rifle":
+            self.baseImage = self.baseRifleImage
         else:
             self.baseImage = self.basePlayerImage
 
     def PlayAnimations(self):
         if self.axeAnimation.animate:
             image = self.axeAnimation.PlayAnimation()
+            if image:
+                return image
+            else:
+                return self.baseImage
+        elif self.rifleAnimation.animate:
+            image = self.rifleAnimation.PlayAnimation()
             if image:
                 return image
             else:
@@ -421,6 +441,7 @@ class Player(MoveObject):
         currentItem = self.GetCurrentItem()
         if currentItem.isWeapon:
             if currentItem.attackingDuringAnim:
+                #print("FUEUE")
                 self.AttackDuringAnim(currentItem)
         self.CheckControls()
         self.Move(True)
@@ -809,10 +830,13 @@ class WaveManager():
     def __init__(self, enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight):
         self.zombieCount = 0
         self.spawnNumber = 0
-        self.spawnList = [enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemySpawnRight]
+        self.spawnDict = {1:enemySpawnTop, 
+                          2:enemySpawnBottom, 
+                          3:enemySpawnLeft, 
+                          4:enemySpawnRight}
         self.isDay = False   
         self.waveCount = 0 
-        self.maxWave = 3
+        self.maxWave = 10
         self.survivorSpawnWaves = [2, 4] # list of waves after which a survivor is spawned
 
     def NextWave(self, uiManager):
@@ -820,13 +844,31 @@ class WaveManager():
         uiManager.RemoveDayUI()
         self.waveCount += 1
         if self.waveCount == 1:
-            self.spawnNumber = 1
-        elif self.waveCount == 2:
-            self.spawnNumber = 2
-        elif self.waveCount == 3:
             self.spawnNumber = 4
-        for spawnArea in self.spawnList:
-            self.SpawnZombies(spawnArea)
+        elif self.waveCount == 2:
+            self.spawnNumber = 9
+        elif self.waveCount == 3:
+            self.spawnNumber = 16
+        elif self.waveCount == 4:
+            self.spawnNumber = 24
+        elif self.waveCount == 5:
+            self.spawnNumber = 35
+        elif self.waveCount == 6:
+            self.spawnNumber = 50
+        elif self.waveCount == 7:
+            self.spawnNumber = 60
+        elif self.waveCount == 8:
+            self.spawnNumber = 80
+        elif self.waveCount == 9:
+            self.spawnNumber = 100
+        elif self.waveCount == 10:
+            self.spawnNumber = 150
+        for _ in range(self.spawnNumber):
+            randomNum = random.randint(1, 4)
+            self.SpawnZombies(self.spawnDict[randomNum])
+        player.CreateLocalRects(allSprites)
+        for survivor in survivorSprites:
+            survivor.CreateLocalRects(allSprites)
 
     def Daytime(self, uiManager):
         if self.waveCount in self.survivorSpawnWaves:
@@ -863,19 +905,16 @@ class WaveManager():
         rightX = enemySpawn.rect.right-borderOffsetX
         topY = enemySpawn.rect.top+borderOffsetY
         bottomY = enemySpawn.rect.bottom-borderOffsetY
-        for _ in range(self.spawnNumber):
-            enemy = Enemy((random.randint(leftX, rightX), random.randint(topY, bottomY)))
-            #enemy = Enemy(random.randint(30, 31), random.randint(48, 112))
-            #enemy = Enemy((leftX, topY))
-            #print("Enemy pos:", enemy.pos, "| Enemy rect pos:", enemy.hitboxRect.center)
-            allSprites.add(enemy)
-            liveSprites.add(enemy)
-            enemySprites.add(enemy)
-            enemyRects.append((enemy.hitboxRect, enemy))
-            enemy.CreateLocalRects(allSprites)
-        player.CreateLocalRects(allSprites)
-        for survivor in survivorSprites:
-            survivor.CreateLocalRects(allSprites)
+        enemy = Enemy((random.randint(leftX, rightX), random.randint(topY, bottomY)))
+        #enemy = Enemy(random.randint(30, 31), random.randint(48, 112))
+        #enemy = Enemy((leftX, topY))
+        #print("Enemy pos:", enemy.pos, "| Enemy rect pos:", enemy.hitboxRect.center)
+        allSprites.add(enemy)
+        liveSprites.add(enemy)
+        enemySprites.add(enemy)
+        enemyRects.append((enemy.hitboxRect, enemy))
+        enemy.CreateLocalRects(allSprites)
+        
     
     def Reset(self):
         self.waveCount = 0
@@ -979,6 +1018,22 @@ class RangedWeapon():
                 self.currentAmmo = self.totalAmmo
                 self.totalAmmo = 0
     
+    def UseAnim(self, user):
+        timeSince = time.time() - self.lastFired
+        if timeSince >= self.fireRate and self.currentAmmo > 0:
+            self.lastFired = time.time()
+            self.attackingDuringAnim = True
+            self.currentAmmo -= 1
+
+        elif self.currentAmmo == 0 and self.totalAmmo > 0:
+            if self.totalAmmo >= self.magazineCap:
+                self.currentAmmo = self.magazineCap
+                self.totalAmmo -= self.magazineCap
+
+            elif self.totalAmmo < self.magazineCap:
+                self.currentAmmo = self.totalAmmo
+                self.totalAmmo = 0
+    
     def Shoot(self, user):
         randomSpread = random.randint(-self.spread, self.spread)
         direction = user.lookDirection.rotate(randomSpread)
@@ -1005,16 +1060,19 @@ class Animation():
         # Returns the next frame in the animation.
         # If the last frame is reached, the function returns false
         if self.currentFrame == self.frameCount:
+                #print("FFFFFFF")
                 self.lastTime = 0
                 self.animate = False
                 self.currentFrame = 0
                 return False
-        if self.timePerFrame <= (time.time() - self.lastTime):
+        elif self.timePerFrame <= (time.time() - self.lastTime):
+                #print("fefunef")
                 self.lastTime = time.time()
                 frameToReturn = self.currentFrame
                 self.currentFrame += 1
                 return self.framesList[frameToReturn]
         else:
+            #print("FFFFFEEEFF")
             return self.framesList[self.currentFrame]
     
 def DrawMinimap():
@@ -1113,7 +1171,7 @@ rectsToDraw = [] # In format (colour, rect, width)
 
 #################### CREATE OBJECTS ####################
 
-AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "M4 Rifle")
+AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "Auto Rifle")
 Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\PistolSprite.png", 8, "Pistol")
 Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
 Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
