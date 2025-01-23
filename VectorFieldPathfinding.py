@@ -36,6 +36,7 @@ class VectorFieldPathfinding():
         self.GenerateHeatMap(self.targetPos)
         #cProfile.runctx('self.GenerateHeatMap(self.targetPos)', globals(), locals(), sort='tottime')
         self.GenerateVectorField()
+        #cProfile.runctx('self.GenerateVectorField()', globals(), locals(), sort='tottime')
 
     def GetDirection(self, rect):
         startPos = self.GetRectCellPos(rect)
@@ -63,7 +64,7 @@ class VectorFieldPathfinding():
                 neighbours.append(pos)
         return neighbours
     
-    def GetHorzVertNeighbours(self, sourcePos):
+    def GetHorzVertDist(self, sourcePos, sourceDist):
         # Same as get neighbours but only 
         # horizontal and vertical neighbours
         northNPos = (sourcePos[0], sourcePos[1] - 1)
@@ -71,13 +72,16 @@ class VectorFieldPathfinding():
         southNPos = (sourcePos[0], sourcePos[1] + 1)
         eastNPos = (sourcePos[0] - 1, sourcePos[1])
         neighboursPos = [northNPos, southNPos, eastNPos, westNPos]
-        neighbours = []
+        neighboursDist = []
+        dist = 0
         for pos in neighboursPos:
             # Checks if the position exists
             if not self.CheckExist(pos) or self.localPathMap[pos][self.obstacleI]:
-                pos = False
-            neighbours.append(pos)
-        return neighbours
+                pos = sourceDist
+            else:
+                dist = self.localPathMap[pos][self.distToTargetI]
+            neighboursDist.append(dist)
+        return neighboursDist
 
     def GenerateHeatMap(self, endPos):
         openList = [endPos]
@@ -113,42 +117,37 @@ class VectorFieldPathfinding():
         for pos in self.posList:
             if not self.localPathMap[pos][self.obstacleI]:
                 #print("pos:", pos)
-                horzVertNeighbours = self.GetHorzVertNeighbours(pos)
-                upPos, downPos, rightPos, leftPos = horzVertNeighbours
+                posDistToTarget = self.localPathMap[pos][self.distToTargetI]
+                upDist, downDist, rightDist, leftDist = self.GetHorzVertDist(pos, posDistToTarget)
                 #print("left:", self.FindCellInfo(leftPos, "distToTarget"))
                 #print("right:", self.FindCellInfo(rightPos, "distToTarget"))
-                posDistToTarget = self.localPathMap[pos][self.distToTargetI]
-                leftDist = 0
-                rightDist = 0
-                upDist = 0
-                downDist = 0
-                if leftPos != False:
-                    leftDist = self.localPathMap[leftPos][self.distToTargetI]
-                if rightPos != False:
-                    rightDist = self.localPathMap[rightPos][self.distToTargetI]
-                if upPos != False:
-                    upDist = self.localPathMap[upPos][self.distToTargetI]
-                if downPos != False:
-                    downDist = self.localPathMap[downPos][self.distToTargetI]
+                # leftDist = 0
+                # rightDist = 0
+                # upDist = 0
+                # downDist = 0
+                newVectorX = rightDist - leftDist
+                newVectorY = upDist - downDist
 
-                if rightPos == False and leftPos != False:
-                    newVectorX = posDistToTarget - leftDist
-                elif leftPos == False and rightPos != False:
-                    newVectorX = rightDist - posDistToTarget
-                elif leftPos == False and rightPos == False:
-                    newVectorX = 0
-                else:
-                    newVectorX = rightDist - leftDist
+                # if rightPos == False and leftPos != False:
+                #     newVectorX = posDistToTarget - leftDist
+                # elif leftPos == False and rightPos != False:
+                #     newVectorX = rightDist - posDistToTarget
+                # elif leftPos == False and rightPos == False:
+                #     newVectorX = 0
+                # else:
+                #     newVectorX = rightDist - leftDist
 
-                if upPos == False and downPos != False:
-                    newVectorY = posDistToTarget - downDist
-                elif downPos == False and upPos != False:
-                    newVectorY = upDist - posDistToTarget
-                elif downPos == False and upPos == False:
-                    newVectorY = 0
-                else:
-                    newVectorY = upDist - downDist
+                # if upPos == False and downPos != False:
+                #     newVectorY = posDistToTarget - downDist
+                # elif downPos == False and upPos != False:
+                #     newVectorY = upDist - posDistToTarget
+                # elif downPos == False and upPos == False:
+                #     newVectorY = 0
+                # else:
+                #     newVectorY = upDist - downDist
+
                 #print("new vector:", (newVectorX, newVectorY))
+
                 newVector = pygame.math.Vector2(newVectorX, newVectorY)
                 if newVectorX != 0 or newVectorY != 0:
                     newVector = newVector.normalize()

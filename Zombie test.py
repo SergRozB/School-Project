@@ -780,7 +780,7 @@ class Bullet(MoveObject):
         self.CreateLocalRects(allSprites)
 
     def GetAngle(self):
-        # Angle still slightly off....
+        # Gets ang
         x = (self.pos.x - camera.offset.x) * zoomLevel
         y = (self.pos.y - camera.offset.y) * zoomLevel
         Mx, My = pygame.mouse.get_pos()
@@ -797,11 +797,10 @@ class Bullet(MoveObject):
         collidedWith = self.hitboxRect.collidedict(self.localRects)
         if collidedWith:
             spriteCollidedWith = collidedWith[0]
-            if spriteCollidedWith != player and spriteCollidedWith not in survivorSprites and spriteCollidedWith not in bullets and spriteCollidedWith in allSprites:
-                if spriteCollidedWith in liveSprites:
+            if spriteCollidedWith in enemySprites:
                     self.DealDamage(spriteCollidedWith)
                     self.kill()
-                else:
+            elif spriteCollidedWith is not player:
                     self.kill()
     
     def Update(self):
