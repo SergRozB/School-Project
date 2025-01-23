@@ -230,7 +230,6 @@ class Player(MoveObject):
                     self.currentAnimation = self.axeAnimation
                     currentItem.UseAnim(self)
                 elif currentItem.name == "Auto Rifle":
-                    #print("hhhfe")
                     self.rifleAnimation.Animate()
                     self.currentAnimation = self.rifleAnimation
                     currentItem.UseAnim(self)
@@ -245,7 +244,6 @@ class Player(MoveObject):
             currentItem.Attack(self)
 
         elif currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
-            #print("hefh ehfe")
             currentItem.Shoot(self)
 
     def GetCurrentItem(self):
@@ -439,9 +437,8 @@ class Player(MoveObject):
             self.GiveCommand()
         self.BaseImageManager()
         currentItem = self.GetCurrentItem()
-        if currentItem.isWeapon:
-            if currentItem.attackingDuringAnim:
-                #print("FUEUE")
+        if self.currentAnimation != None:
+            if self.currentAnimation.animate:
                 self.AttackDuringAnim(currentItem)
         self.CheckControls()
         self.Move(True)
@@ -797,10 +794,12 @@ class Bullet(MoveObject):
         collidedWith = self.hitboxRect.collidedict(self.localRects)
         if collidedWith:
             spriteCollidedWith = collidedWith[0]
-            if spriteCollidedWith in enemySprites:
+            if spriteCollidedWith != player and spriteCollidedWith not in survivorSprites and spriteCollidedWith not in bullets and spriteCollidedWith in allSprites:
+                print("sprite name:", type(spriteCollidedWith).__name__)
+                if spriteCollidedWith in liveSprites:
                     self.DealDamage(spriteCollidedWith)
                     self.kill()
-            elif spriteCollidedWith is not player:
+                else:
                     self.kill()
     
     def Update(self):
@@ -932,13 +931,11 @@ class MeleeWeapon():
         self.isWeapon = True
         self.isDefault = isDefault
         self.name = name
-        self.attackingDuringAnim = False # Stores whether the weapon is attacking during an animation
     
     def Use(self, user):
         # Function called when the weapon is used
         timeSince = time.time() - self.lastUsed
         if timeSince >= self.attackSpeed * user.attackSpeed:
-            #print("USED!")
             self.lastUsed = time.time()
             self.Attack(user)
     
@@ -947,35 +944,17 @@ class MeleeWeapon():
         # Ensures damage is dealt in line with animation
         timeSince = time.time() - self.lastUsed
         if timeSince >= self.attackSpeed * user.attackSpeed:
-            #print("USED!")
             self.lastUsed = time.time()
-            self.attackingDuringAnim = True
     
     def Attack(self, user):
         # Deals damage to the zombie colliding with the rect
         # of the weapon
-        if user == player:
-            rangeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle)
-        else:
-            rangeImage = pygame.transform.rotate(self.baseRangeImage, -user.angle - 90)
-        #rangeMask = pygame.mask.from_surface(rangeImage)
-        #maskImage = rangeMask.to_surface()
         rect = pygame.rect.Rect(0, 0, self.attackRange*32, self.attackRange*32)
         offsetVector = pygame.math.Vector2(user.hitboxRect.centerx+user.lookDirection.x*16*self.attackRange, user.hitboxRect.centery+user.lookDirection.y*16*self.attackRange)
         rect.center = offsetVector
-        #print("rect center:", rect.center)
-        #pygame.draw.rect(screen, "green", rect)
-        #screen.blit(rangeImage, ((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
-       # screen.blit(pygame.transform.scale(maskImage, (rect.w * zoomLevel, rect.h * zoomLevel)), 
-                        #((rect.x - camera.offset.x) * zoomLevel, (rect.y - camera.offset.y) * zoomLevel))
         listOfRects = [item[0] for item in enemyRects]
         indices = rect.collidelistall(listOfRects)
         for index in indices:
-            #zombieRect = listOfRects[index]
-            #zombieRectMask = pygame.mask.Mask((zombieRect.width, zombieRect.height))
-            #zombieRectMask.fill()
-            #offset = (rect.x - zombieRect.x, rect.y - zombieRect.y)
-            #if rangeMask.overlap(zombieRectMask, offset) and index < len(enemyRects):
             if index < len(enemyRects):
                 zombie = enemyRects[index][1]
                 zombie.TakeDamage(self.damage * user.strength)
@@ -999,7 +978,6 @@ class RangedWeapon():
         self.isWeapon = True
         self.isDefault = False
         self.name = name
-        self.attackingDuringAnim = False # Stores whether the weapon is attacking during an animation
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
@@ -1021,7 +999,6 @@ class RangedWeapon():
         timeSince = time.time() - self.lastFired
         if timeSince >= self.fireRate and self.currentAmmo > 0:
             self.lastFired = time.time()
-            self.attackingDuringAnim = True
             self.currentAmmo -= 1
 
         elif self.currentAmmo == 0 and self.totalAmmo > 0:
@@ -1059,19 +1036,16 @@ class Animation():
         # Returns the next frame in the animation.
         # If the last frame is reached, the function returns false
         if self.currentFrame == self.frameCount:
-                #print("FFFFFFF")
-                self.lastTime = 0
                 self.animate = False
                 self.currentFrame = 0
                 return False
         elif self.timePerFrame <= (time.time() - self.lastTime):
-                #print("fefunef")
+                #print("times:", (time.time() - self.lastTime))
                 self.lastTime = time.time()
                 frameToReturn = self.currentFrame
                 self.currentFrame += 1
                 return self.framesList[frameToReturn]
         else:
-            #print("FFFFFEEEFF")
             return self.framesList[self.currentFrame]
     
 def DrawMinimap():
@@ -1172,8 +1146,8 @@ rectsToDraw = [] # In format (colour, rect, width)
 
 AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "Auto Rifle")
 Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\PistolSprite.png", 8, "Pistol")
-Axe = MeleeWeapon(2.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
-Fists = MeleeWeapon(1.5, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
+Axe = MeleeWeapon(1.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
+Fists = MeleeWeapon(1, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
 HealthBooster = Boosters.HealthBooster()
 SpeedBooster = Boosters.SpeedBooster()
 StrengthBooster = Boosters.StrengthBooster()

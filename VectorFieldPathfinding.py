@@ -17,8 +17,10 @@ class VectorFieldPathfinding():
         self.pathSprites = pathSprites
         self.pathRectList = []
         self.targetPos = 0
+
         for cell in self.pathSprites:
             self.pathRectList.append(cell.rect)
+
         self.wantedDict = {
             'distToTarget' : 0,
             'nextToWall' : 1,
@@ -77,10 +79,10 @@ class VectorFieldPathfinding():
         for pos in neighboursPos:
             # Checks if the position exists
             if not self.CheckExist(pos) or self.localPathMap[pos][self.obstacleI]:
-                pos = sourceDist
+                neighboursDist.append(sourceDist)
             else:
                 dist = self.localPathMap[pos][self.distToTargetI]
-            neighboursDist.append(dist)
+                neighboursDist.append(dist)
         return neighboursDist
 
     def GenerateHeatMap(self, endPos):
