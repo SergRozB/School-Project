@@ -180,16 +180,16 @@ class UIManager():
     def MenuFunctions(self, name):
         if name == "Quit":
             pygame.quit()
-        if name == "Resume" or "Start":
+        if name == "Play Again" or "Start":
             self.load = True
             self.clearUI = True
     
     def GameOverScreen(self):
         self.buttonList.clear()
-        resumeSurface = pygame.image.load("SpriteImages\WornButton.png")
-        resumeSurface = pygame.transform.scale(resumeSurface, (200, 75))
-        resumeButton = Button.Button(resumeSurface, self.screenW*0.5, self.screenH*0.4, "Resume", 30, "Resume", True)
-        self.buttonList.append(resumeButton)
+        playAgainSurface = pygame.image.load("SpriteImages\WornButton.png")
+        playAgainSurface = pygame.transform.scale(playAgainSurface, (200, 75))
+        playAgainButton = Button.Button(playAgainSurface, self.screenW*0.5, self.screenH*0.4, "Play Again", 30, "Play Again", True)
+        self.buttonList.append(playAgainButton)
         quitSurface = pygame.image.load("SpriteImages\WornButton.png")
         quitSurface = pygame.transform.scale(quitSurface, (200, 75))
         quitButton = Button.Button(quitSurface, self.screenW*0.5, self.screenH*0.6, "Quit", 30, "Quit", True)
@@ -197,10 +197,10 @@ class UIManager():
     
     def StartScreen(self):
         self.buttonList.clear()
-        resumeSurface = pygame.image.load("SpriteImages\WornButton.png")
-        resumeSurface = pygame.transform.scale(resumeSurface, (200, 75))
-        resumeButton = Button.Button(resumeSurface, self.screenW*0.5, self.screenH*0.4, "Start", 30, "Start", True)
-        self.buttonList.append(resumeButton)
+        startSurface = pygame.image.load("SpriteImages\WornButton.png")
+        startSurface = pygame.transform.scale(startSurface, (200, 75))
+        startButton = Button.Button(startSurface, self.screenW*0.5, self.screenH*0.4, "Start", 30, "Start", True)
+        self.buttonList.append(startButton)
         quitSurface = pygame.image.load("SpriteImages\WornButton.png")
         quitSurface = pygame.transform.scale(quitSurface, (200, 75))
         quitButton = Button.Button(quitSurface, self.screenW*0.5, self.screenH*0.6, "Quit", 30, "Quit", True)
