@@ -100,8 +100,8 @@ class VectorFieldPathfinding():
                     distToCurrent = self.GetDist(currentPos, pos)
                     #print("currentpos:", currentPos, "| pos:", pos, "| get dist:", distToCurrent)
                     distFromTarget = currentPosDist + distToCurrent
-                    if distToCurrent == 14 and self.localPathMap[pos][self.nextToWallI] and self.localPathMap[currentPos][self.nextToWallI]:
-                        distFromTarget += 10000
+                    #if distToCurrent == 14 and self.localPathMap[pos][self.nextToWallI] and self.localPathMap[currentPos][self.nextToWallI]:
+                    #    distFromTarget += 10000
                     if self.localPathMap[pos][self.visitedI]:
                         if distFromTarget < self.localPathMap[pos][self.distToTargetI]:
                             oldArray = self.localPathMap[endPos]
@@ -172,26 +172,75 @@ class VectorFieldPathfinding():
             self.localPathSize += 1
         self.FixEdges()
     
+    # def FixEdges(self):
+    #     for position in self.posList:
+    #         if self.localPathMap[position][self.obstacleI]:
+    #             horizontalNPos = [(position[0] + 1, position[1]), (position[0], position[1] + 1), (position[0] - 1, position[1]), (position[0], position[1] - 1)]
+    #             for pos in horizontalNPos:
+    #                 if position in list(self.localPathMap.keys()):
+    #                     oldArray = self.localPathMap[position]
+    #                     self.localPathMap[position] = (oldArray[0], True, oldArray[2], oldArray[3], oldArray[4])
+    #                     cellObject = self.GetCell(pos)
+    #                     if type(cellObject) != str:
+    #                         if not cellObject.hasObstacle:
+    #                             cellObject.changeColour(purple)
+
     def FixEdges(self):
-        for position in self.posList:
-            if self.localPathMap[position][self.obstacleI]:
-                horizontalNPos = [(position[0] + 1, position[1]), (position[0], position[1] + 1), (position[0] - 1, position[1]), (position[0], position[1] - 1)]
-                for pos in horizontalNPos:
-                    if position in list(self.localPathMap.keys()):
-                        oldArray = self.localPathMap[position]
-                        self.localPathMap[position] = (oldArray[0], True, oldArray[2], oldArray[3], oldArray[4])
-                        cellObject = self.GetCell(pos)
-                        if type(cellObject) != str:
-                            if not cellObject.hasObstacle:
-                                cellObject.changeColour(purple)
+        for cellPos in self.posList:
+            if self.localPathMap[cellPos][self.obstacleI]:
+                up = (cellPos[0], cellPos[1] - 1)
+                upRight = (cellPos[0] - 1, cellPos[1] - 1)
+                right = (cellPos[0] - 1, cellPos[1])
+                downRight = (cellPos[0] - 1, cellPos[1] + 1)
+                down = (cellPos[0], cellPos[1] + 1)
+                downLeft = (cellPos[0] + 1, cellPos[1] + 1)
+                left = (cellPos[0] + 1, cellPos[1])
+                upLeft = (cellPos[0] + 1, cellPos[1] - 1)
+
+                if self.CheckExist(up):
+                    if not self.localPathMap[up][self.obstacleI]:
+                        if self.CheckExist(right):
+                            if not self.localPathMap[right][self.obstacleI]:
+                                self.SetCellInfo(upRight, "nextToWall", True)
+                                self.SetColour(upRight, purple)
+                        if self.CheckExist(left):
+                            if not self.localPathMap[left][self.obstacleI]:
+                                self.SetCellInfo(upLeft, "nextToWall", True)
+                                self.SetColour(upLeft, purple)
+
+                if self.CheckExist(down):
+                    if not self.localPathMap[down][self.obstacleI]:
+                        if self.CheckExist(right):
+                            if not self.localPathMap[right][self.obstacleI]:
+                                self.SetCellInfo(downRight, "nextToWall", True)
+                                self.SetColour(downRight, purple)
+                        if self.CheckExist(left):
+                            if not self.localPathMap[left][self.obstacleI]:
+                                self.SetCellInfo(downLeft, "nextToWall", True)
+                                self.SetColour(downLeft, purple)
+
+    def SetCellInfo(self, pos, wantToChange, change):
+        # Sets the cell information if it exists
+        if self.CheckExist(pos):
+            array = list(self.localPathMap[pos])
+            array[self.wantedDict[wantToChange]] = change
+            self.localPathMap[pos] = tuple(array)
+        else:
+            return False
+    
+    def SetColour(self, pos, colour):
+        # Colour must be in RGB list from, i.e. (R, G, B)
+        if self.CheckExist(pos):
+            cell = self.GetCell(pos)
+            cell.changeColour(colour)
     
     def GetDist(self, startPos, targetPos):
         changeY = abs(startPos[1] - targetPos[1]) 
         changeX = abs(startPos[0] - targetPos[0])
         if changeX > changeY:
-            dist = 14*(changeY) + 10*(abs(changeX - changeY))
+            dist = 20*(changeY) + 10*(abs(changeX - changeY))
             return dist
-        dist = 14*(changeX) + 10*(abs(changeY - changeX))
+        dist = 20*(changeX) + 10*(abs(changeY - changeX))
         return dist
 
     def GetRectCellPos(self, rect):
@@ -230,14 +279,14 @@ class VectorFieldPathfinding():
         else:
             return False
                 
-    def SetCellInfo(self, pos, wanted, change):
-        # Changes cell information from local path map
-        if pos == -1 or type(pos) == str:
-            print("ERROR: bad pos")
-            return "no pos"
-        cell = self.localPathMap[(pos[1]-1)*self.horizontalCount + pos[0]-1]
-        if cell[0] == pos:
-            cell[1][self.wantedDict[wanted]] = change
+    # def SetCellInfo(self, pos, wanted, change):
+    #     # Changes cell information from local path map
+    #     if pos == -1 or type(pos) == str:
+    #         print("ERROR: bad pos")
+    #         return "no pos"
+    #     cell = self.localPathMap[(pos[1]-1)*self.horizontalCount + pos[0]-1]
+    #     if cell[0] == pos:
+    #         cell[1][self.wantedDict[wanted]] = change
     
     def CleanPath(self):
         # Wipes information from the local path map for the next pathfind

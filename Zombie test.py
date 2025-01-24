@@ -181,7 +181,6 @@ class Player(MoveObject):
         self.baseRifleImage = pygame.image.load("SpriteImages\PlayerSpriteAutorifle.png").convert_alpha()
 
         # Animations
-        self.currentAnimation = None
         self.axeAnimation = Animation(AnimationFrames.playerAxeFrames, Axe.attackSpeed/7)
         self.axeAttackFrame = AnimationFrames.axeDamageFrame
 
@@ -227,12 +226,11 @@ class Player(MoveObject):
             if leftMButtonHeld and currentItem.isWeapon:
                 if currentItem.name == "Axe":
                     self.axeAnimation.Animate()
-                    self.currentAnimation = self.axeAnimation
                     currentItem.UseAnim(self)
                 elif currentItem.name == "Auto Rifle":
                     self.rifleAnimation.Animate()
-                    self.currentAnimation = self.rifleAnimation
                     currentItem.UseAnim(self)
+                    #currentItem.Use(self)
                 else:
                     currentItem.Use(self)
             elif leftMButtonPressed and not currentItem.isWeapon:
@@ -240,11 +238,13 @@ class Player(MoveObject):
     
     def AttackDuringAnim(self, currentItem):
         # Times the dealing of damage of an item with the animation of the item
-        if currentItem.name == "Axe" and self.axeAnimation.currentFrame == self.axeAttackFrame:
-            currentItem.Attack(self)
+        if not currentItem.didAction:
+            if currentItem.name == "Axe" and self.axeAnimation.currentFrame == self.axeAttackFrame:
+                currentItem.Attack(self)
 
-        elif currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
-            currentItem.Shoot(self)
+            elif currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
+                currentItem.Shoot(self)
+
 
     def GetCurrentItem(self):
         return self.inventory[self.currentItem]
@@ -437,9 +437,7 @@ class Player(MoveObject):
             self.GiveCommand()
         self.BaseImageManager()
         currentItem = self.GetCurrentItem()
-        if self.currentAnimation != None:
-            if self.currentAnimation.animate:
-                self.AttackDuringAnim(currentItem)
+        self.AttackDuringAnim(currentItem)
         self.CheckControls()
         self.Move(True)
         self.RotateToMouse()
@@ -795,7 +793,7 @@ class Bullet(MoveObject):
         if collidedWith:
             spriteCollidedWith = collidedWith[0]
             if spriteCollidedWith != player and spriteCollidedWith not in survivorSprites and spriteCollidedWith not in bullets and spriteCollidedWith in allSprites:
-                print("sprite name:", type(spriteCollidedWith).__name__)
+                #print("sprite name:", type(spriteCollidedWith).__name__)
                 if spriteCollidedWith in liveSprites:
                     self.DealDamage(spriteCollidedWith)
                     self.kill()
@@ -931,11 +929,13 @@ class MeleeWeapon():
         self.isWeapon = True
         self.isDefault = isDefault
         self.name = name
+        self.didAction = False # Stores wether the dealing damage was used since 'use anim' called - just for animations
     
     def Use(self, user):
         # Function called when the weapon is used
         timeSince = time.time() - self.lastUsed
         if timeSince >= self.attackSpeed * user.attackSpeed:
+            self.didAction = False
             self.lastUsed = time.time()
             self.Attack(user)
     
@@ -943,12 +943,14 @@ class MeleeWeapon():
         # Function called when the weapon is used with animation
         # Ensures damage is dealt in line with animation
         timeSince = time.time() - self.lastUsed
+        self.didAction = False
         if timeSince >= self.attackSpeed * user.attackSpeed:
             self.lastUsed = time.time()
     
     def Attack(self, user):
         # Deals damage to the zombie colliding with the rect
         # of the weapon
+        self.didAction = True
         rect = pygame.rect.Rect(0, 0, self.attackRange*32, self.attackRange*32)
         offsetVector = pygame.math.Vector2(user.hitboxRect.centerx+user.lookDirection.x*16*self.attackRange, user.hitboxRect.centery+user.lookDirection.y*16*self.attackRange)
         rect.center = offsetVector
@@ -978,6 +980,7 @@ class RangedWeapon():
         self.isWeapon = True
         self.isDefault = False
         self.name = name
+        self.didAction = False # Stores wether the dealing damage was used since 'use anim' called - just for animations
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
@@ -998,6 +1001,7 @@ class RangedWeapon():
     def UseAnim(self, user):
         timeSince = time.time() - self.lastFired
         if timeSince >= self.fireRate and self.currentAmmo > 0:
+            self.didAction = False
             self.lastFired = time.time()
             self.currentAmmo -= 1
 
@@ -1011,6 +1015,7 @@ class RangedWeapon():
                 self.totalAmmo = 0
     
     def Shoot(self, user):
+        self.didAction = True
         randomSpread = random.randint(-self.spread, self.spread)
         direction = user.lookDirection.rotate(randomSpread)
         Bullet(user.pos, 1000, self.damage, direction)
@@ -1281,12 +1286,12 @@ def main():
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
                         #((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
         
-        #for sprite in pathSprites:
-            #drawnRect = sprite.rect.copy()
-            #drawnRect.width = sprite.rect.width * zoomLevel
-            #drawnRect.height = sprite.rect.height * zoomLevel
-            #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
-                        #((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
+        for sprite in pathSprites:
+            drawnRect = sprite.rect.copy()
+            drawnRect.width = sprite.rect.width * zoomLevel
+            drawnRect.height = sprite.rect.height * zoomLevel
+            screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
+                        ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
         #for sprite in noCollisionSprites:
             #drawnRect = sprite.rect.copy()
