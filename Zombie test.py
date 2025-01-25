@@ -154,11 +154,12 @@ class Player(MoveObject):
         self.lookDirection = 0 # Stores the direction the player is looking in
         self.inventory = [Fists] # List containing inventory objects
         self.currentItem = 0 # Stores the position of the current item in the inventory list
+        self.ammo = 0 # Stored the ammo on the player
 
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 15 # Stores the number of points the player has
+        self.points = 0 # Stores the number of points the player has
         self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -189,7 +190,7 @@ class Player(MoveObject):
 
         self.pistolAnimation = Animation(AnimationFrames.playerPistolFrames, Pistol.fireRate/2)
         self.pistolFireFrame = AnimationFrames.pistolFireFrame
-    
+
     def ManageStatusEffects(self):
         fontSize = 20
         font = pygame.font.SysFont("cambria", fontSize)
@@ -218,10 +219,12 @@ class Player(MoveObject):
                 self.attackSpeed = 1
                 self.hasAttackSpeedBoost = False 
                 self.statusList.pop(self.statusList.index("attackSpeed"))
+                self.axeAnimation.ChangeDuration(Axe.attackSpeed/7)
             else:
                 speedText = "Rage Tablet Time Left: "
                 speedText += str(int(30 - (time.time() - self.timeSinceAttackSpeedBoost)))
                 uiManager.BlitText(screen, font, speedText, "white", (screenW-150,(self.statusList.index("attackSpeed")+1)*fontSize))
+                self.axeAnimation.ChangeDuration((Axe.attackSpeed/7)*self.attackSpeed)
 
     def UseItem(self):
         currentItem = self.GetCurrentItem()
@@ -273,9 +276,12 @@ class Player(MoveObject):
         if item.isWeapon and item in self.inventory:
             uiManager.AddNotification("Item already in inventory")
         elif self.points >= item.price:
-            self.inventory.append(item)
-            self.points -= item.price
-            uiManager.AddNotification("Bought " + item.name)
+            if item.name == "Ammo X 5":
+                item.Use()
+            else:
+                self.inventory.append(item)
+                uiManager.AddNotification("Bought " + item.name)
+            self.points -= item.pricess
         else:
             uiManager.AddNotification("Not enough points")
 
@@ -506,6 +512,8 @@ class Survivor(MoveObject):
 
         # Weapon base images
         self.baseRifleImage = pygame.image.load(f"SpriteImages\Survivor_{str(randInt)}SpriteAutorifle1.png").convert_alpha()
+        self.baseAxeImage = pygame.image.load(f"SpriteImages\Survivor_{str(randInt)}AxeSwing1.png").convert_alpha()
+        self.basePistolImage = pygame.image.load(f"SpriteImages\Survivor_{str(randInt)}Pistol1.png").convert_alpha()
 
         # Defines animations
         self.DefineSurvivorAnimations(randInt)
@@ -515,7 +523,15 @@ class Survivor(MoveObject):
         rifleFrames = AnimationFrames.ReturnSurvivorFrames(num, "Auto Rifle")
         self.rifleAnimation = Animation(rifleFrames, AutoRifle.fireRate/2)
         self.rifleFireFrame = AnimationFrames.rifleFireFrame
-    
+
+        axeFrames = AnimationFrames.ReturnSurvivorFrames(num, "Axe")
+        self.axeAnimation = Animation(axeFrames, Axe.attackSpeed/7*self.attackSpeed)
+        self.axeDamageFrame = AnimationFrames.axeDamageFrame
+
+        pistolFrames = AnimationFrames.ReturnSurvivorFrames(num, "Pistol")
+        self.pistolAnimation = Animation(pistolFrames, Pistol.fireRate/2)
+        self.pistolFireFrame = AnimationFrames.pistolFireFrame
+
     def InitialisePathfinding(self):
         # Creates pathfinding object in survivor when called
         self.pathFind = Pathfinding.Pathfinding((horizontalCount, verticalCount), showPathSprites, pathSprites)
@@ -526,38 +542,45 @@ class Survivor(MoveObject):
         if currentItem.name == "Auto Rifle":
             self.rifleAnimation.Animate()
             currentItem.UseAnim(self)
+        elif currentItem.name == "Axe":
+            self.axeAnimation.Animate()
+            currentItem.UseAnim(self)
+        elif currentItem.name == "Pistol":
+            self.pistolAnimation.Animate()
+            currentItem.UseAnim(self)
         else:
             currentItem.Use(self) 
 
     def BaseImageManager(self):
-        # if self.GetCurrentItem().name == "Axe":
-        #     self.baseImage = self.baseAxeImage
-        if self.currentItem.name == "Auto Rifle":
+        if self.currentItem.name == "Axe":
+             self.baseImage = self.baseAxeImage
+        elif self.currentItem.name == "Auto Rifle":
             self.baseImage = self.baseRifleImage
-        # elif self.GetCurrentItem().name == "Pistol":
-        #     self.baseImage = self.basePistolImage
+        elif self.currentItem.name == "Pistol":
+            self.baseImage = self.basePistolImage
         else:
             self.baseImage = self.baseSurvivorImage
 
     def PlayAnimations(self):
-        # if self.axeAnimation.animate:
-        #     image = self.axeAnimation.PlayAnimation()
-        #     if image:
-        #         return image
-        #     else:
-        #         return self.baseImage
-        if self.rifleAnimation.animate:
+        if self.axeAnimation.animate:
+            print("animating")
+            image = self.axeAnimation.PlayAnimation()
+            if image:
+                return image
+            else:
+                return self.baseImage
+        elif self.rifleAnimation.animate:
             image = self.rifleAnimation.PlayAnimation()
             if image:
                 return image
             else:
                 return self.baseImage
-        # elif self.pistolAnimation.animate:
-        #     image = self.pistolAnimation.PlayAnimation()
-        #     if image:
-        #         return image
-        #     else:
-        #         return self.baseImage
+        elif self.pistolAnimation.animate:
+            image = self.pistolAnimation.PlayAnimation()
+            if image:
+                return image
+            else:
+                return self.baseImage
         else:
             return self.baseImage 
 
@@ -565,14 +588,14 @@ class Survivor(MoveObject):
         # Times the dealing of damage of an item with the animation of the item
         if self.currentItem.isWeapon:
             if not self.currentItem.didAction:
-                # if currentItem.name == "Axe" and self.axeAnimation.currentFrame == self.axeAttackFrame:
-                #     currentItem.Attack(self)
+                if self.currentItem.name == "Axe" and self.axeAnimation.currentFrame == self.axeDamageFrame:
+                    self.currentItem.Attack(self)
 
-                if self.currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
+                elif self.currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
                     self.currentItem.Shoot(self)
                 
-                # elif currentItem.name == "Pistol" and self.pistolAnimation.currentFrame == self.pistolFireFrame:
-                #     currentItem.Shoot(self)
+                elif self.currentItem.name == "Pistol" and self.pistolAnimation.currentFrame == self.pistolFireFrame:
+                    self.currentItem.Shoot(self)
     
     def IsInRange(self):
         # Determins whether the survivor is close enough to its target
@@ -909,33 +932,23 @@ class WaveManager():
         self.isDay = False   
         self.waveCount = 0 
         self.maxWave = 10
-        self.survivorSpawnWaves = [0, 2, 4] # list of waves after which a survivor is spawned
-
+        self.survivorSpawnWaves = [4, 7, 9] # list of waves after which a survivor is spawned
+        self.spawnNumberDict = {1 : 4,
+                                2 : 9, 
+                                3 : 16,
+                                4 : 24,
+                                5 : 35,
+                                6 : 50,
+                                7 : 60,
+                                8 : 90,
+                                9 : 120,
+                                10 : 160}
+    
     def NextWave(self, uiManager):
         self.isDay = False
         uiManager.RemoveDayUI()
         self.waveCount += 1
-        if self.waveCount == 1:
-            self.spawnNumber = 4
-        elif self.waveCount == 2:
-            self.spawnNumber = 9
-        elif self.waveCount == 3:
-            self.spawnNumber = 16
-        elif self.waveCount == 4:
-            self.spawnNumber = 24
-        elif self.waveCount == 5:
-            self.spawnNumber = 35
-        elif self.waveCount == 6:
-            self.spawnNumber = 50
-        elif self.waveCount == 7:
-            self.spawnNumber = 60
-        elif self.waveCount == 8:
-            self.spawnNumber = 80
-        elif self.waveCount == 9:
-            self.spawnNumber = 100
-        elif self.waveCount == 10:
-            self.spawnNumber = 150
-        for _ in range(self.spawnNumber):
+        for _ in range(self.spawnNumberDict[self.waveCount]):
             randomNum = random.randint(1, 4)
             self.SpawnZombies(self.spawnDict[randomNum])
         player.CreateLocalRects(allSprites)
@@ -986,8 +999,7 @@ class WaveManager():
         enemySprites.add(enemy)
         enemyRects.append((enemy.hitboxRect, enemy))
         enemy.CreateLocalRects(allSprites)
-        
-    
+          
     def Reset(self):
         self.waveCount = 0
         self.isDay = True
@@ -1019,8 +1031,8 @@ class MeleeWeapon():
         # Function called when the weapon is used with animation
         # Ensures damage is dealt in line with animation
         timeSince = time.time() - self.lastUsed
-        self.didAction = False
         if timeSince >= self.attackSpeed * user.attackSpeed:
+            self.didAction = False
             self.lastUsed = time.time()
     
     def Attack(self, user):
@@ -1042,16 +1054,15 @@ class MeleeWeapon():
         return self.baseRangeImage.get_rect().h * self.attackRange
 
 class RangedWeapon():
-    def __init__(self, damage, fireRate, spread, magazineCap, totalAmmo, reloadSpeed, imagePath, price, name):
+    def __init__(self, damage, fireRate, spread, magazineCap, reloadSpeed, imagePath, price, name):
         self.damage = damage
         self.fireRate = fireRate
         self.spread = spread
         self.magazineCap = magazineCap
-        self.totalAmmo = totalAmmo
         self.reloadSpeed = reloadSpeed
-        self.currentAmmo = magazineCap
+        self.currentMagAmmo = 0
         self.lastFired = 0
-        self.itemSprite = pygame.transform.rotozoom(pygame.image.load(imagePath).convert_alpha(), 0, 1)
+        self.itemSprite = pygame.image.load(imagePath).convert_alpha()
         self.price = price
         self.isWeapon = True
         self.isDefault = False
@@ -1060,26 +1071,53 @@ class RangedWeapon():
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
-        if timeSince >= self.fireRate and self.currentAmmo > 0:
-            self.lastFired = time.time()
-            self.Shoot(user)
-            self.currentAmmo -= 1
+        if timeSince >= self.fireRate:
+            if user == player:
+                if self.currentMagAmmo > 0:
+                    self.lastFired = time.time()
+                    self.Shoot(user)
+                    self.currentMagAmmo -= 1
 
-        elif self.currentAmmo == 0 and self.totalAmmo > 0:
-            if self.totalAmmo >= self.magazineCap:
-                self.currentAmmo = self.magazineCap
-                self.totalAmmo -= self.magazineCap
+                elif self.currentMagAmmo == 0 and player.ammo > 0:
+                    if self.ammo >= self.magazineCap:
+                        self.currentMagAmmo = self.magazineCap
+                        player.ammo -= self.magazineCap
 
-            elif self.totalAmmo < self.magazineCap:
-                self.currentAmmo = self.totalAmmo
-                self.totalAmmo = 0
+                    elif player.ammo < self.magazineCap:
+                        self.currentMagAmmo = player.ammo
+                        player.ammo = 0
+            else:
+                self.Shoot(user)
+                self.lastFired = time.time()
+    
+    def SetAmmo(self):
+        if player.ammo < self.magazineCap:
+            self.currentMagAmmo = player.ammo
+            player.ammo = 0
+        else:
+            self.currentMagAmmo = self.magazineCap
+            player.ammo -= self.magazineCap
     
     def UseAnim(self, user):
         timeSince = time.time() - self.lastFired
-        if timeSince >= self.fireRate and self.currentAmmo > 0:
-            self.didAction = False
-            self.lastFired = time.time()
-            self.currentAmmo -= 1
+        if timeSince >= self.fireRate:
+            if user == player:
+                if self.currentMagAmmo > 0:
+                    self.lastFired = time.time()
+                    self.didAction = False
+                    self.currentMagAmmo -= 1
+
+                elif self.currentMagAmmo == 0 and player.ammo > 0:
+                    if self.ammo >= self.magazineCap:
+                        self.currentMagAmmo = self.magazineCap
+                        player.ammo -= self.magazineCap
+
+                    elif player.ammo < self.magazineCap:
+                        self.currentMagAmmo = player.ammo
+                        player.ammo = 0
+            else:
+                self.didAction = False
+                self.lastFired = time.time()
 
         elif self.currentAmmo == 0 and self.totalAmmo > 0:
             if self.totalAmmo >= self.magazineCap:
@@ -1099,6 +1137,17 @@ class RangedWeapon():
     def ReturnRange(self):
         # Returns the range of the weapon from the user
         return 100000
+
+class Ammo():
+    def __init__(self):
+        self.itemSprite = pygame.image.load("SpriteImages\AmmoSprite.png").convert_alpha()
+        self.name = "Ammo X 5"
+        self.price = 2
+        self.ammoAmount = 5
+        self.isWeapon = False
+    
+    def Use(self):
+        player.ammo += self.ammoAmount
 
 class Animation():
     # Represents an animation
@@ -1128,6 +1177,9 @@ class Animation():
                 return self.framesList[frameToReturn]
         else:
             return self.framesList[self.currentFrame]
+    
+    def ChangeDuration(self, newTime):
+        self.timePerFrame = newTime
     
 def DrawMinimap():
     size = 0.1
@@ -1226,10 +1278,11 @@ rectsToDraw = [] # In format (colour, rect, width)
 
 #################### CREATE OBJECTS ####################
 
-AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "Auto Rifle")
-Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\PistolSprite.png", 8, "Pistol")
-Axe = MeleeWeapon(1.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
-Fists = MeleeWeapon(1.2, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
+AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 50, "Auto Rifle")
+Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\PistolSprite.png", 25, "Pistol")
+Axe = MeleeWeapon(1.8, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
+Fists = MeleeWeapon(1.4, 0.2, 5, "SpriteImages\FistSprite.png", 0, True, "Fists")
+Ammo = Ammo()
 HealthBooster = Boosters.HealthBooster()
 SpeedBooster = Boosters.SpeedBooster()
 StrengthBooster = Boosters.StrengthBooster()
@@ -1275,7 +1328,7 @@ waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemy
 
 lastTimeSincePath = 0
 
-storeItems = [HealthBooster, SpeedBooster, StrengthBooster, AttackSpeedBooster, Axe, Pistol, AutoRifle]
+storeItems = [ Axe, Pistol, AutoRifle, Ammo, HealthBooster, SpeedBooster, StrengthBooster, AttackSpeedBooster]
 
 #################### SPAWN ZOMBIES ####################
 

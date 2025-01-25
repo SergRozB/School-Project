@@ -34,6 +34,9 @@ class UIManager():
         pointsTextInput = "Points: "
         pointsTextInput += str(player.points)
         self.BlitText(screen, font, pointsTextInput, "white", (self.screenW * 0.25, self.screenH * 0.9))
+        ammoTextInput = "Ammo: "
+        ammoTextInput += str(player.ammo)
+        self.BlitText(screen, font, ammoTextInput, "white", (self.screenW * 0.8, self.screenH * 0.9))
         # Current item box
         frameBehindItemSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
         frameBehindItemSurface = pygame.transform.scale(frameBehindItemSurface, (frameBehindItemSurface.get_rect().w*2, frameBehindItemSurface.get_rect().h*2))
@@ -282,8 +285,6 @@ class UIManager():
                 self.BlitText(screen, font, nameText, "red", (currentX, nameYlevel))
                 # Creates buttons which run code to buy items
                 if not self.storeButtonsAdded:
-                    print("store buttons?")
-                    print("currnet x:", currentX)
                     buyButtonSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
                     buyButtonSurface = pygame.transform.scale(buyButtonSurface, (32*3, 32*3))
                     buyButton = Button.StoreButton(buyButtonSurface, currentX, yLevel, "   ", 30, "Buy", False, item)

@@ -68,7 +68,7 @@ class AttackSpeedBooster():
         self.isWeapon = False
         self.isDefault = False
         self.name = "Rage Tablet"
-        self.newAttackSpeed = 2
+        self.newAttackSpeed = 0.5
         self.statusDuration = 30
     
     def Use(self, user):
