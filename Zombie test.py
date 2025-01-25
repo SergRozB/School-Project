@@ -155,7 +155,6 @@ class Player(MoveObject):
         self.inventory = [Fists] # List containing inventory objects
         self.currentItem = 0 # Stores the position of the current item in the inventory list
 
-        self.canUse = False # Stores if the player can use an item
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
@@ -470,8 +469,11 @@ class Survivor(MoveObject):
     def __init__(self, startingPosition):
         super().__init__(startingPosition, 300)
         
+        randInt = random.randint(1, 8)
+
         # Create the image of the survivor
-        self.image = pygame.transform.rotozoom(pygame.image.load(self.RandomSurvivorSprite()).convert_alpha(), 0, 1)
+        self.image = pygame.image.load(f"SpriteImages\Survivor_{str(randInt)}.png").convert_alpha()
+        self.baseSurvivorImage = self.image
         self.baseImage = self.image
 
         # Get a rectangle object that shows where our image is
@@ -483,7 +485,6 @@ class Survivor(MoveObject):
         self.target = None # The actual target of the survivor
         self.pathTarget = None # The target the survivor will move towards which may not be the actual target
         self.hasTarget = False
-        self.canUse = False # Determines if the survivor can use its item
         self.health = 10
         self.strengthRange = (0.5, 1.5)
         self.awarenessRange = (500, 1500)
@@ -502,10 +503,18 @@ class Survivor(MoveObject):
         self.timeSincePathfind = 0 # Records the time since the last path find operation
         self.pathfindRate = 0.2 # Controls how often the survivor can pathfind in seconds
         self.followingCommand = False # Stores if the survivor is following a command, to stop doing other things
+
+        # Weapon base images
+        self.baseRifleImage = pygame.image.load(f"SpriteImages\Survivor_{str(randInt)}SpriteAutorifle1.png").convert_alpha()
+
+        # Defines animations
+        self.DefineSurvivorAnimations(randInt)
     
-    def RandomSurvivorSprite(self):
-        randInt = random.randint(1, 8)
-        return "SpriteImages\Survivor_" + str(randInt) + ".png"
+    def DefineSurvivorAnimations(self, num):
+        # Defines the animations for the survivor depending on random number given 
+        rifleFrames = AnimationFrames.ReturnSurvivorFrames(num, "Auto Rifle")
+        self.rifleAnimation = Animation(rifleFrames, AutoRifle.fireRate/2)
+        self.rifleFireFrame = AnimationFrames.rifleFireFrame
     
     def InitialisePathfinding(self):
         # Creates pathfinding object in survivor when called
@@ -513,8 +522,57 @@ class Survivor(MoveObject):
     
     def UseItem(self):
         # Uses current item when called
-        if self.canUse:
-            self.currentItem.Use(self)  
+        currentItem = self.currentItem
+        if currentItem.name == "Auto Rifle":
+            self.rifleAnimation.Animate()
+            currentItem.UseAnim(self)
+        else:
+            currentItem.Use(self) 
+
+    def BaseImageManager(self):
+        # if self.GetCurrentItem().name == "Axe":
+        #     self.baseImage = self.baseAxeImage
+        if self.currentItem.name == "Auto Rifle":
+            self.baseImage = self.baseRifleImage
+        # elif self.GetCurrentItem().name == "Pistol":
+        #     self.baseImage = self.basePistolImage
+        else:
+            self.baseImage = self.baseSurvivorImage
+
+    def PlayAnimations(self):
+        # if self.axeAnimation.animate:
+        #     image = self.axeAnimation.PlayAnimation()
+        #     if image:
+        #         return image
+        #     else:
+        #         return self.baseImage
+        if self.rifleAnimation.animate:
+            image = self.rifleAnimation.PlayAnimation()
+            if image:
+                return image
+            else:
+                return self.baseImage
+        # elif self.pistolAnimation.animate:
+        #     image = self.pistolAnimation.PlayAnimation()
+        #     if image:
+        #         return image
+        #     else:
+        #         return self.baseImage
+        else:
+            return self.baseImage 
+
+    def AttackDuringAnim(self):
+        # Times the dealing of damage of an item with the animation of the item
+        if self.currentItem.isWeapon:
+            if not self.currentItem.didAction:
+                # if currentItem.name == "Axe" and self.axeAnimation.currentFrame == self.axeAttackFrame:
+                #     currentItem.Attack(self)
+
+                if self.currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
+                    self.currentItem.Shoot(self)
+                
+                # elif currentItem.name == "Pistol" and self.pistolAnimation.currentFrame == self.pistolFireFrame:
+                #     currentItem.Shoot(self)
     
     def IsInRange(self):
         # Determins whether the survivor is close enough to its target
@@ -567,7 +625,7 @@ class Survivor(MoveObject):
         velX = self.speed * math.cos(math.radians(self.moveAngle))
         velY = self.speed * math.sin(math.radians(self.moveAngle))
         self.direction = pygame.math.Vector2(velX, velY)
-        self.image = pygame.transform.rotate(self.baseImage, -self.angle - 90)
+        self.image = pygame.transform.rotate(self.PlayAnimations(), -self.angle - 90)
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
         self.rect.center = self.hitboxRect.center
     
@@ -605,6 +663,8 @@ class Survivor(MoveObject):
         #print("survivor pos:", self.hitboxRect.center)
         self.oldRect = self.hitboxRect.copy()
         self.rangeRect.center = self.hitboxRect.center
+        self.BaseImageManager()
+        self.AttackDuringAnim()
         if not self.followingCommand:
             self.CheckForZombies()
         #print("target:", self.target, "| has target:", self.hasTarget)
@@ -626,11 +686,10 @@ class Survivor(MoveObject):
             self.RotateToTarget()
             if self.IsInRange():
                 if self.target != player:
-                    self.currentItem.Use(self)
+                    self.UseItem()
             else:
                 self.Move(True)
 
-        self.UseItem()
         if (time.time() - self.timeSinceTint) < self.redTintDuration:
             self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
 
@@ -850,7 +909,7 @@ class WaveManager():
         self.isDay = False   
         self.waveCount = 0 
         self.maxWave = 10
-        self.survivorSpawnWaves = [2, 4] # list of waves after which a survivor is spawned
+        self.survivorSpawnWaves = [0, 2, 4] # list of waves after which a survivor is spawned
 
     def NextWave(self, uiManager):
         self.isDay = False
@@ -1170,7 +1229,7 @@ rectsToDraw = [] # In format (colour, rect, width)
 AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 15, "Auto Rifle")
 Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\PistolSprite.png", 8, "Pistol")
 Axe = MeleeWeapon(1.5, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
-Fists = MeleeWeapon(1, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
+Fists = MeleeWeapon(1.2, 0.2, 20, "SpriteImages\FistSprite.png", 0, True, "Fists")
 HealthBooster = Boosters.HealthBooster()
 SpeedBooster = Boosters.SpeedBooster()
 StrengthBooster = Boosters.StrengthBooster()

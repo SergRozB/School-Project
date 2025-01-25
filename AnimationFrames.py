@@ -24,3 +24,11 @@ playerPistolFrames = []
 playerPistolFrames.append(image.load("SpriteImages\PlayerSpritePistol1.png"))
 playerPistolFrames.append(image.load("SpriteImages\PlayerSpritePistol2.png"))
 pistolFireFrame = 1
+
+def ReturnSurvivorFrames(survivorNum, weaponName):
+    if weaponName == "Auto Rifle":
+        allNums = [1, 2]
+        frames = []
+        for num in allNums:
+            frames.append(image.load(f"SpriteImages\Survivor_{str(survivorNum)}SpriteAutorifle{str(num)}.png"))
+        return frames
