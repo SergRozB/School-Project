@@ -61,6 +61,9 @@ leftMButtonHeld = False
 rightMButtonPressed = False
 dt = 0
 
+# Sound Effects
+pistolSFX = pygame.mixer.Sound("SoundEffects\pistolShot.mp3")
+
 class MoveObject(pygame.sprite.Sprite):
     # Where movement is handled
     def __init__(self, startingPos, speed):
@@ -159,7 +162,7 @@ class Player(MoveObject):
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 0 # Stores the number of points the player has
+        self.points = 100 # Stores the number of points the player has
         self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -190,6 +193,10 @@ class Player(MoveObject):
 
         self.pistolAnimation = Animation(AnimationFrames.playerPistolFrames, Pistol.fireRate/2)
         self.pistolFireFrame = AnimationFrames.pistolFireFrame
+
+        # Reload variables
+        self.timeSinceReload = 0
+        self.startedReload = False
 
     def ManageStatusEffects(self):
         fontSize = 20
@@ -252,9 +259,11 @@ class Player(MoveObject):
                     currentItem.Attack(self)
 
                 elif currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
+                    pistolSFX.play()
                     currentItem.Shoot(self)
                 
                 elif currentItem.name == "Pistol" and self.pistolAnimation.currentFrame == self.pistolFireFrame:
+                    pistolSFX.play()
                     currentItem.Shoot(self)
 
     def GetCurrentItem(self):
@@ -272,6 +281,27 @@ class Player(MoveObject):
             else:
                 self.currentItem -= 1
     
+    def CheckReload(self):
+        keys = pygame.key.get_pressed()
+        currentItem = self.GetCurrentItem()
+        if currentItem.isWeapon:
+            if currentItem.isRangedWeapon:
+                if self.ammo > 0:
+                    if currentItem.reload and self.startedReload and (time.time() - self.timeSinceReload) >= currentItem.reloadSpeed:
+                        if currentItem.currentMagAmmo != currentItem.magazineCap:
+                            currentItem.Reload()
+                            self.startedReload = False
+                        elif keys[pygame.K_r]:
+                            uiManager.AddNotification("Magazine is full")
+                    if keys[pygame.K_r] and not currentItem.reload:
+                        currentItem.reload = True
+                    if currentItem.reload and not self.startedReload:
+                        uiManager.AddNotification("Reloading...")
+                        self.timeSinceReload = time.time()
+                        self.startedReload = True
+                elif keys[pygame.K_r]:
+                    uiManager.AddNotification("No ammo to reload")
+
     def BuyItem(self, item):
         if item.isWeapon and item in self.inventory:
             uiManager.AddNotification("Item already in inventory")
@@ -281,7 +311,7 @@ class Player(MoveObject):
             else:
                 self.inventory.append(item)
                 uiManager.AddNotification("Bought " + item.name)
-            self.points -= item.pricess
+            self.points -= item.price
         else:
             uiManager.AddNotification("Not enough points")
 
@@ -463,6 +493,7 @@ class Player(MoveObject):
         self.CheckControls()
         self.Move(True)
         self.RotateToMouse()
+        self.CheckReload()
         self.UseItem()
         self.CheckSelection()
         self.ManageStatusEffects()
@@ -563,7 +594,6 @@ class Survivor(MoveObject):
 
     def PlayAnimations(self):
         if self.axeAnimation.animate:
-            print("animating")
             image = self.axeAnimation.PlayAnimation()
             if image:
                 return image
@@ -592,9 +622,11 @@ class Survivor(MoveObject):
                     self.currentItem.Attack(self)
 
                 elif self.currentItem.name == "Auto Rifle" and self.rifleAnimation.currentFrame == self.rifleFireFrame:
+                    pistolSFX.play()
                     self.currentItem.Shoot(self)
                 
                 elif self.currentItem.name == "Pistol" and self.pistolAnimation.currentFrame == self.pistolFireFrame:
+                    pistolSFX.play()
                     self.currentItem.Shoot(self)
     
     def IsInRange(self):
@@ -1018,6 +1050,7 @@ class MeleeWeapon():
         self.isDefault = isDefault
         self.name = name
         self.didAction = False # Stores wether the dealing damage was used since 'use anim' called - just for animations
+        self.isRangedWeapon = False
     
     def Use(self, user):
         # Function called when the weapon is used
@@ -1068,24 +1101,20 @@ class RangedWeapon():
         self.isDefault = False
         self.name = name
         self.didAction = False # Stores wether the dealing damage was used since 'use anim' called - just for animations
+        self.isRangedWeapon = True
+        self.reload = False
     
     def Use(self, user):
         timeSince = time.time() - self.lastFired
-        if timeSince >= self.fireRate:
+        if timeSince >= self.fireRate and not self.reload:
             if user == player:
                 if self.currentMagAmmo > 0:
+                    pistolSFX.play()
                     self.lastFired = time.time()
                     self.Shoot(user)
                     self.currentMagAmmo -= 1
-
                 elif self.currentMagAmmo == 0 and player.ammo > 0:
-                    if self.ammo >= self.magazineCap:
-                        self.currentMagAmmo = self.magazineCap
-                        player.ammo -= self.magazineCap
-
-                    elif player.ammo < self.magazineCap:
-                        self.currentMagAmmo = player.ammo
-                        player.ammo = 0
+                    self.reload = True
             else:
                 self.Shoot(user)
                 self.lastFired = time.time()
@@ -1100,7 +1129,7 @@ class RangedWeapon():
     
     def UseAnim(self, user):
         timeSince = time.time() - self.lastFired
-        if timeSince >= self.fireRate:
+        if timeSince >= self.fireRate and not self.reload:
             if user == player:
                 if self.currentMagAmmo > 0:
                     self.lastFired = time.time()
@@ -1108,25 +1137,21 @@ class RangedWeapon():
                     self.currentMagAmmo -= 1
 
                 elif self.currentMagAmmo == 0 and player.ammo > 0:
-                    if self.ammo >= self.magazineCap:
-                        self.currentMagAmmo = self.magazineCap
-                        player.ammo -= self.magazineCap
-
-                    elif player.ammo < self.magazineCap:
-                        self.currentMagAmmo = player.ammo
-                        player.ammo = 0
+                    self.reload = True
             else:
                 self.didAction = False
                 self.lastFired = time.time()
+    
+    def Reload(self):
+        ammoGap = (self.magazineCap - self.currentMagAmmo)
+        if player.ammo >= ammoGap:
+            self.currentMagAmmo = self.magazineCap
+            player.ammo -= ammoGap
 
-        elif self.currentAmmo == 0 and self.totalAmmo > 0:
-            if self.totalAmmo >= self.magazineCap:
-                self.currentAmmo = self.magazineCap
-                self.totalAmmo -= self.magazineCap
-
-            elif self.totalAmmo < self.magazineCap:
-                self.currentAmmo = self.totalAmmo
-                self.totalAmmo = 0
+        else:
+            self.currentMagAmmo += player.ammo
+            player.ammo = 0
+        self.reload = False
     
     def Shoot(self, user):
         self.didAction = True
@@ -1278,8 +1303,8 @@ rectsToDraw = [] # In format (colour, rect, width)
 
 #################### CREATE OBJECTS ####################
 
-AutoRifle = RangedWeapon(20, 0.1, 5, 30, 1000, 1.5, "SpriteImages\AutoRifleSprite.png", 50, "Auto Rifle")
-Pistol = RangedWeapon(10, 0.15, 5, 30, 1000, 1.5, "SpriteImages\PistolSprite.png", 25, "Pistol")
+AutoRifle = RangedWeapon(20, 0.1, 5, 30, 3, "SpriteImages\AutoRifleSprite.png", 25, "Auto Rifle")
+Pistol = RangedWeapon(10, 0.15, 5, 15, 1.5, "SpriteImages\PistolSprite.png", 15, "Pistol")
 Axe = MeleeWeapon(1.8, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
 Fists = MeleeWeapon(1.4, 0.2, 5, "SpriteImages\FistSprite.png", 0, True, "Fists")
 Ammo = Ammo()

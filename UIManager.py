@@ -26,7 +26,8 @@ class UIManager():
     def playerUI(self, player, screen):
         # Creates the player UI
         # Health text
-        font = pygame.font.SysFont("cambria", 30)
+        size = 30
+        font = pygame.font.SysFont("cambria", size)
         healthTextInput = "Health: "
         healthTextInput += str(player.health)
         self.BlitText(screen, font, healthTextInput, "white", (self.screenW * 0.1, self.screenH * 0.9))
@@ -34,9 +35,13 @@ class UIManager():
         pointsTextInput = "Points: "
         pointsTextInput += str(player.points)
         self.BlitText(screen, font, pointsTextInput, "white", (self.screenW * 0.25, self.screenH * 0.9))
-        ammoTextInput = "Ammo: "
-        ammoTextInput += str(player.ammo)
-        self.BlitText(screen, font, ammoTextInput, "white", (self.screenW * 0.8, self.screenH * 0.9))
+        if player.GetCurrentItem().isWeapon:
+            if player.GetCurrentItem().isRangedWeapon:
+                magAmmoTextInput = str(player.GetCurrentItem().currentMagAmmo)
+                self.BlitText(screen, font, magAmmoTextInput, "white", (self.screenW * 0.75, self.screenH * 0.9))
+                smallFont = pygame.font.SysFont("cambria", int(size*(0.5)))
+                totalAmmoTextInput = str(player.ammo)
+                self.BlitText(screen, smallFont, totalAmmoTextInput, "white", (self.screenW * 0.8, self.screenH * 0.9))
         # Current item box
         frameBehindItemSurface = pygame.image.load("SpriteImages\SquareWornButton.png")
         frameBehindItemSurface = pygame.transform.scale(frameBehindItemSurface, (frameBehindItemSurface.get_rect().w*2, frameBehindItemSurface.get_rect().h*2))
