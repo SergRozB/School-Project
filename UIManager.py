@@ -301,7 +301,6 @@ class UIManager():
     def RemoveDayUI(self):
         # Removes the store buttons
         # Called when going from day to night
-        print("called?")
         for button in self.storeButtonsList:
             self.buttonList.remove(button)
 

@@ -307,6 +307,7 @@ class Player(MoveObject):
             uiManager.AddNotification("Item already in inventory")
         elif self.points >= item.price:
             if item.name == "Ammo X 5":
+                uiManager.AddNotification("Bought " + item.name)
                 item.Use()
             else:
                 self.inventory.append(item)
@@ -387,6 +388,7 @@ class Player(MoveObject):
         self.health -= damage
         self.timeSinceTint = time.time()
         if self.health <= 0:
+            self.kill()
             dead()
     
     def CheckSelection(self):
@@ -780,6 +782,28 @@ class Enemy(MoveObject):
         self.redTintDuration = 0.1
         self.timeSinceTint = 0      
         self.died = False
+
+        #Sound variables
+        self.randNum = random.randint(1, 3) # Random number 1-3, decides sounds zombie will use
+        self.lastPlayed = 0
+        self.currentDuration = 0
+        self.isPlayingSound = False
+        self.currentSound = None
+
+    def SoundManager(self):
+        # Plays random zombie sounds
+        if self.health <= 0:
+            self.currentSound.stop()
+        if not self.isPlayingSound:
+            secondRandNum = random.randint(1, 3)
+            self.currentSound = pygame.mixer.Sound(f"SoundEffects\zombie{str(self.randNum)}_{str(secondRandNum)}.mp3")
+            self.currentSound.play()
+            #self.currentSound.stop()
+            self.isPlayingSound = True
+            self.currentDuration = self.currentSound.get_length()
+            self.lastPlayed = time.time()
+        elif self.currentDuration <= (time.time()-self.lastPlayed):
+            self.isPlayingSound = False
     
     def DealDamage(self):
         timeSince = time.time() - self.lastAttacked
@@ -792,7 +816,7 @@ class Enemy(MoveObject):
     
     def Wait(self):
         # To prevent enemy going through walls when spawning
-        timeToWait = 0.1
+        timeToWait = 2
         timeSince = (time.time() - self.initialTime)
         if timeSince >= timeToWait:
             #print("r rh")
@@ -846,6 +870,9 @@ class Enemy(MoveObject):
                 player.points += 1
             self.died = True
             self.kill()
+            if self.currentSound != None:
+                self.currentSound.stop()
+            print("hllo")
             player.localRects.pop(self)
             for survivor in survivorSprites:
                 survivor.localRects.pop(self)
@@ -866,6 +893,7 @@ class Enemy(MoveObject):
             #pygame.draw.rect(screen, white, self.dealDamageRect)
             self.Separate(0.005)
             self.DealDamage()
+            #self.SoundManager()
             if (time.time() - self.timeSinceTint) < self.redTintDuration:
                 self.image.fill(darkSoftRed, special_flags=pygame.BLEND_RGB_ADD)
     
@@ -965,7 +993,7 @@ class WaveManager():
         self.waveCount = 0 
         self.maxWave = 10
         self.survivorSpawnWaves = [4, 7, 9] # list of waves after which a survivor is spawned
-        self.spawnNumberDict = {1 : 4,
+        self.spawnNumberDict = {1 : 150,
                                 2 : 9, 
                                 3 : 16,
                                 4 : 24,
@@ -1035,6 +1063,7 @@ class WaveManager():
     def Reset(self):
         self.waveCount = 0
         self.isDay = True
+        self.zombieCount = 0
 
 class MeleeWeapon():
     def __init__(self, attackRange, attackSpeed, damage, imagePath, price, isDefault, name):
@@ -1247,6 +1276,7 @@ def Load():
     allSprites.remove(player)
     allSprites.remove(survivorSprites)
     allSprites.remove(bullets)
+    enemySprites.empty()
     enemyRects.clear()
     liveSprites.empty()
     survivorSprites.empty()
