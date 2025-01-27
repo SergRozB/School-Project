@@ -816,7 +816,7 @@ class Enemy(MoveObject):
     
     def Wait(self):
         # To prevent enemy going through walls when spawning
-        timeToWait = 2
+        timeToWait = 0.1
         timeSince = (time.time() - self.initialTime)
         if timeSince >= timeToWait:
             #print("r rh")
@@ -1430,6 +1430,7 @@ def main():
                 #print("Mpos:", pygame.mouse.get_pos())
                 leftMButtonHeld = True
                 leftMButtonPressed = True
+                cProfile.runctx('main()', globals(), locals(), sort='tottime')
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 rightMButtonPressed = True
@@ -1485,7 +1486,7 @@ def main():
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
             # ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
-        DrawMinimap()
+        #DrawMinimap()
         #pathFindPlayer.DrawVectorMap(screen, camera)    
         #pathFindPlayer.DrawHeatMap(screen, camera)
         waveManager.Update(enemySprites, uiManager)
@@ -1547,5 +1548,4 @@ def start():
             main()
         pygame.display.update()
 start()
-#cProfile.runctx('Enemy.Update()', globals(), locals())
 pygame.quit()
