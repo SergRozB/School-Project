@@ -1078,7 +1078,7 @@ class MeleeWeapon():
         self.isWeapon = True
         self.isDefault = isDefault
         self.name = name
-        self.didAction = False # Stores wether the dealing damage was used since 'use anim' called - just for animations
+        self.didAction = True # Stores wether the dealing damage was used since 'use anim' called - just for animations
         self.isRangedWeapon = False
     
     def Use(self, user):
@@ -1129,7 +1129,7 @@ class RangedWeapon():
         self.isWeapon = True
         self.isDefault = False
         self.name = name
-        self.didAction = False # Stores wether the dealing damage was used since 'use anim' called - just for animations
+        self.didAction = True # Stores wether the dealing damage was used since 'use anim' called - just for animations
         self.isRangedWeapon = True
         self.reload = False
     
