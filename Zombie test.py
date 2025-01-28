@@ -40,6 +40,7 @@ screenW = 1200
 screenH = 800
 
 white = (255, 255, 255)
+dayColour = (35, 35, 20)
 black = (0, 0, 0)
 red = (255, 0, 0)
 green = (0, 255, 0)
@@ -162,7 +163,7 @@ class Player(MoveObject):
         self.health = 100 # Stores the health of the player
         self.strength = 1
         self.attackSpeed = 1
-        self.points = 100 # Stores the number of points the player has
+        self.points = 0 # Stores the number of points the player has
         self.baseSpeed = self.speed
 
         self.redTintDuration = 0.1 # The length of time the red tint should last for
@@ -993,16 +994,16 @@ class WaveManager():
         self.waveCount = 0 
         self.maxWave = 10
         self.survivorSpawnWaves = [4, 7, 9] # list of waves after which a survivor is spawned
-        self.spawnNumberDict = {1 : 150,
+        self.spawnNumberDict = {1 : 4,
                                 2 : 9, 
                                 3 : 16,
                                 4 : 24,
                                 5 : 35,
                                 6 : 50,
                                 7 : 60,
-                                8 : 90,
-                                9 : 120,
-                                10 : 160}
+                                8 : 75,
+                                9 : 90,
+                                10 : 120}
     
     def NextWave(self, uiManager):
         self.isDay = False
@@ -1335,7 +1336,7 @@ rectsToDraw = [] # In format (colour, rect, width)
 
 AutoRifle = RangedWeapon(20, 0.1, 5, 30, 3, "SpriteImages\AutoRifleSprite.png", 25, "Auto Rifle")
 Pistol = RangedWeapon(10, 0.15, 5, 15, 1.5, "SpriteImages\PistolSprite.png", 15, "Pistol")
-Axe = MeleeWeapon(1.8, 0.6, 50, "SpriteImages\AxeSprite.png", 4, False, "Axe")
+Axe = MeleeWeapon(1.8, 0.6, 50, "SpriteImages\AxeSprite.png", 8, False, "Axe")
 Fists = MeleeWeapon(1.4, 0.2, 5, "SpriteImages\FistSprite.png", 0, True, "Fists")
 Ammo = Ammo()
 HealthBooster = Boosters.HealthBooster()
@@ -1383,7 +1384,7 @@ waveManager = WaveManager(enemySpawnTop, enemySpawnBottom, enemySpawnLeft, enemy
 
 lastTimeSincePath = 0
 
-storeItems = [ Axe, Pistol, AutoRifle, Ammo, HealthBooster, SpeedBooster, StrengthBooster, AttackSpeedBooster]
+storeItems = [Axe, Pistol, AutoRifle, Ammo, HealthBooster, SpeedBooster, StrengthBooster, AttackSpeedBooster]
 
 #################### SPAWN ZOMBIES ####################
 
@@ -1486,9 +1487,12 @@ def main():
             #screen.blit(pygame.transform.scale(sprite.image, (sprite.image.get_rect().w * zoomLevel, sprite.image.get_rect().h * zoomLevel)), 
             # ((drawnRect.x - camera.offset.x) * zoomLevel, (drawnRect.y - camera.offset.y) * zoomLevel))
 
-        #DrawMinimap()
+        
         #pathFindPlayer.DrawVectorMap(screen, camera)    
         #pathFindPlayer.DrawHeatMap(screen, camera)
+        if waveManager.isDay:
+            screen.fill(dayColour, special_flags=pygame.BLEND_RGB_ADD)
+        DrawMinimap()
         waveManager.Update(enemySprites, uiManager)
         uiManager.Update(screen, waveManager, player)
         pygame.display.update()
