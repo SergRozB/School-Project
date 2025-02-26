@@ -892,7 +892,7 @@ class Enemy(MoveObject):
             self.dealDamageRect.center = self.hitboxRect.center
             #pygame.draw.rect(screen, white, self.closeRect)
             #pygame.draw.rect(screen, white, self.dealDamageRect)
-            self.Separate(0.01)
+            #self.Separate(0.01)
             self.DealDamage()
             #self.SoundManager()
             if (time.time() - self.timeSinceTint) < self.redTintDuration:
