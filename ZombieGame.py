@@ -1431,7 +1431,7 @@ def main():
                 #print("Mpos:", pygame.mouse.get_pos())
                 leftMButtonHeld = True
                 leftMButtonPressed = True
-                cProfile.runctx('main()', globals(), locals(), sort='tottime')
+                #cProfile.runctx('main()', globals(), locals(), sort='tottime')
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 rightMButtonPressed = True
