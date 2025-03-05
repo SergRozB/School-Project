@@ -17,6 +17,7 @@ class UIManager():
         self.screenH = screenH
         self.load = False
         self.clearUI = False
+        self.quit = False
     
     def BlitText(self, screen, font, textInput, colour, position):
         text = font.render(textInput, True, colour)
@@ -187,8 +188,8 @@ class UIManager():
         
     def MenuFunctions(self, name):
         if name == "Quit":
-            pygame.quit()
-        if name == "Play Again" or "Start":
+            self.quit = True
+        if name == "Play Again" or name == "Start":
             self.load = True
             self.clearUI = True
     
