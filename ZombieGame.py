@@ -36,8 +36,8 @@ top = 0
 
 mapW = 32*widthOfMap
 mapH = 32*len(MapMaker.map)
-screenW = 1200
-screenH = 800
+screenW = 1600
+screenH = 900
 
 white = (255, 255, 255)
 dayColour = (35, 35, 20)
@@ -873,7 +873,6 @@ class Enemy(MoveObject):
             self.kill()
             if self.currentSound != None:
                 self.currentSound.stop()
-            print("hllo")
             player.localRects.pop(self)
             for survivor in survivorSprites:
                 survivor.localRects.pop(self)
@@ -1402,6 +1401,7 @@ for _ in range(0):
     randomCoords = ((random.randint(leftX, rightX), random.randint(topY, bottomY)))
     allSprites.add(TempObject(randomCoords))
 
+run = True
 #################### MAIN GAME LOOP ####################
 
 def main():
@@ -1413,7 +1413,7 @@ def main():
     global leftMButtonPressed
     global rightMButtonPressed
     pygame.display.set_caption("Zombie Swarm")
-    while True:
+    while run:
         dt = time.time() - lastTime
         lastTime = time.time()
         timeSincePath = time.time() - lastTimeSincePath
@@ -1425,7 +1425,7 @@ def main():
         screen.fill(black)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                run = False
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 #print("Mpos:", pygame.mouse.get_pos())
@@ -1499,19 +1499,20 @@ def main():
         clock.tick(60)
 #################### DEATH GAME LOOP ####################
 def dead():
+    global run
     global leftMButtonHeld
     pygame.display.set_caption("Dead")
     global dt
     global lastTime
     uiManager.GameOverScreen()
-    while True:
+    while run:
         screen.fill("black")
         dt = time.time() - lastTime
         lastTime = time.time()
         screen.fill(black)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                run = False
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 leftMButtonHeld = True
 
@@ -1523,6 +1524,8 @@ def dead():
             uiManager.load = False
             Load()
             main()
+        if uiManager.quit == True:
+            run = False
         pygame.display.update()
 
 def start():
@@ -1530,15 +1533,16 @@ def start():
     pygame.display.set_caption("Start")
     global dt
     global lastTime
+    global run
     uiManager.StartScreen()
-    while True:
+    while run:
         screen.fill("black")
         dt = time.time() - lastTime
         lastTime = time.time()
         screen.fill(black)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                run = False
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 leftMButtonHeld = True
 
@@ -1550,6 +1554,8 @@ def start():
             uiManager.load = False
             Load()
             main()
+        if uiManager.quit == True:
+            run = False
         pygame.display.update()
 start()
 pygame.quit()
