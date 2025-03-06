@@ -83,6 +83,10 @@ class MoveObject(pygame.sprite.Sprite):
     
     def CheckCollision(self, direction):
         collisionList = self.hitboxRect.collidedictall(self.localRects)
+        for item in collisionList:
+            if item[0] in obstacles:
+                collisionList.remove(item)
+                collisionList.append(item)
         if len(collisionList) > 0:
             self.isColliding = True
             if direction == 'horizontal':
@@ -92,13 +96,21 @@ class MoveObject(pygame.sprite.Sprite):
                             self.hitboxRect.right = rect.left
                             self.pos.x = self.hitboxRect.centerx
                         
+                        # if self == player and sprite in obstacles:
+                        #     print("horz  left 1|| old wall right:", sprite.oldRect.right, "| old player left:", self.oldRect.left, "|| new wall right:", rect.right, "| new player left:", self.hitboxRect.left)
+
                         # If collision on the left
                         if self.hitboxRect.left <= rect.right and self.oldRect.left >= sprite.oldRect.right:
                             self.hitboxRect.left = rect.right 
                             self.pos.x = self.hitboxRect.centerx
+                        
+                        # if self == player and sprite in obstacles:
+                        #     print("horz left 2|| old wall right:", sprite.oldRect.right, "| old player left:", self.oldRect.left, "|| new wall right:", rect.right, "| new player left:", self.hitboxRect.left, "\n")
 
             if direction == 'vertical':
                 for sprite, rect in collisionList:
+                    #if self == player:
+                        #print("vert colliding with:", sprite)
                     # If collision on the bottom
                     if self.hitboxRect.bottom >= rect.top and self.oldRect.bottom <= sprite.oldRect.top:
                         self.hitboxRect.bottom = rect.top 
@@ -1449,7 +1461,6 @@ def main():
             sprite.Update()
             #print("name:", type(sprite).__name__)
             #cProfile.runctx('sprite.Update()', globals(), locals(), sort='cumtime')
-            #pygame.draw.rect(screen, "green", sprite.hitboxRect, width = 2)
         uiManager.mouseButtonPressed = leftMButtonPressed
         leftMButtonPressed = False
         rightMButtonPressed = False
