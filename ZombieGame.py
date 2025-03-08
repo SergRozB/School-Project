@@ -398,7 +398,9 @@ class Player(MoveObject):
     def TakeDamage(self, damage):
         # When called, takes the input damage from the health
         # If the health reached below or equal to zero, the 'dead' game loop is run
+        print("health 1:", self.health, "| damage:", damage)
         self.health -= damage
+        print("health 2:", self.health)
         self.timeSinceTint = time.time()
         if self.health <= 0:
             self.kill()
@@ -445,13 +447,13 @@ class Player(MoveObject):
         if not self.givingCommand:
             keys = pygame.key.get_pressed()
             # Checks if the f key is pressed, and if so carries out the follow command
-            if keys[pygame.K_f]:
+            if keys[pygame.K_f] and self.selectedSurvivor != None:
                 self.selectedSurvivor.target = self
                 self.selectedSurvivor.hasTarget = True
                 self.selectedSurvivor = None
 
             # Checks if the g key is pressed, and if so carries out the give current item command
-            if keys[pygame.K_g]:
+            if keys[pygame.K_g] and self.selectedSurvivor != None:
                 currentItem = self.GetCurrentItem()
                 if not currentItem.isDefault and currentItem.isWeapon:
                     uiManager.AddNotification("Gave " + currentItem.name)
@@ -465,7 +467,7 @@ class Player(MoveObject):
                 self.selectedSurvivor = None
 
             # Checks if the q key is pressed, and if so carries out the go to point command
-            if keys[pygame.K_q]:
+            if keys[pygame.K_q] and self.selectedSurvivor != None:
                 uiManager.AddNotification("Right click to move survivor")
                 self.givingCommand = True
     
@@ -699,12 +701,6 @@ class Survivor(MoveObject):
         self.rect = self.image.get_rect(center = self.hitboxRect.center)
         self.rect.center = self.hitboxRect.center
     
-    def TakeDamage(self, damage):
-        self.health -= damage
-        self.timeSinceTint = time.time()
-        if self.health <= 0:
-            dead()
-    
     def FollowPath(self):
         # Removes a cell from the path list if collided with
         if len(self.pathFind.path) == 1 or self.override:
@@ -822,10 +818,9 @@ class Enemy(MoveObject):
         timeSince = time.time() - self.lastAttacked
         if timeSince >= self.damageRate:
             self.lastAttacked = time.time()
-            index = self.dealDamageRect.collidelist(zombieAttackSprites.sprites())
-            if index != -1:
-                spriteInRange = zombieAttackSprites.sprites()[index]
-                spriteInRange.TakeDamage(self.damage)
+            playerInRange = self.dealDamageRect.colliderect(player.hitboxRect)
+            if playerInRange:
+                player.TakeDamage(self.damage)
     
     def Wait(self):
         # To prevent enemy going through walls when spawning
@@ -965,7 +960,7 @@ class Bullet(MoveObject):
             spriteCollidedWith = collidedWith[0]
             if spriteCollidedWith != player and spriteCollidedWith not in survivorSprites and spriteCollidedWith not in bullets and spriteCollidedWith in allSprites:
                 #print("sprite name:", type(spriteCollidedWith).__name__)
-                if spriteCollidedWith in liveSprites:
+                if spriteCollidedWith in enemySprites:
                     self.DealDamage(spriteCollidedWith)
                     self.kill()
                 else:
